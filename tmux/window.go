@@ -12,12 +12,13 @@ const (
 	paneListFormat   = "#{pane_index}|#{pane_current_command}|#{pane_active}|#{pane_width}|#{pane_height}"
 )
 
-// ListWindows returns all windows in the given session, sorted by index.
+// ListWindows returns all windows in the session addressed by target
+// (use Session.ID), sorted by index.
 // Returned windows have Panes == nil; call ListPanes to populate them.
-func ListWindows(sessionName string) ([]Window, error) {
-	out, err := runner.Output("tmux", "list-windows", "-t", sessionName, "-F", windowListFormat)
+func ListWindows(target string) ([]Window, error) {
+	out, err := runner.Output("tmux", "list-windows", "-t", target, "-F", windowListFormat)
 	if err != nil {
-		return nil, fmt.Errorf("list windows %s: %w", sessionName, err)
+		return nil, fmt.Errorf("list windows %s: %w", target, err)
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(out)), "\n")
@@ -42,9 +43,10 @@ func ListWindows(sessionName string) ([]Window, error) {
 }
 
 // ListPanes returns all panes in the given window, sorted by index.
-// windowIndex is the tmux window index (as reported by ListWindows).
-func ListPanes(sessionName string, windowIndex int) ([]Pane, error) {
-	target := fmt.Sprintf("%s:%d", sessionName, windowIndex)
+// sessionTarget addresses the session (use Session.ID); windowIndex is the
+// tmux window index (as reported by ListWindows).
+func ListPanes(sessionTarget string, windowIndex int) ([]Pane, error) {
+	target := fmt.Sprintf("%s:%d", sessionTarget, windowIndex)
 	out, err := runner.Output("tmux", "list-panes", "-t", target, "-F", paneListFormat)
 	if err != nil {
 		return nil, fmt.Errorf("list panes %s: %w", target, err)

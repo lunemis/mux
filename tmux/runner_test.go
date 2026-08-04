@@ -59,8 +59,8 @@ func withMock(t *testing.T, fn func(m *mockRunner)) {
 func TestListSessionsWithMock(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
 		now := time.Now().Unix()
-		line1 := fmt.Sprintf("dev|2|%d|1|/home/user/dev|%d|bash|100", now-3600, now-60)
-		line2 := fmt.Sprintf("ai|1|%d|0|/home/user/ai|%d|claude|200", now-7200, now-120)
+		line1 := fmt.Sprintf("$0|dev|2|%d|1|/home/user/dev|%d|bash|100", now-3600, now-60)
+		line2 := fmt.Sprintf("$1|ai|1|%d|0|/home/user/ai|%d|claude|200", now-7200, now-120)
 		out := line1 + "\n" + line2
 
 		// Mock the list-sessions call

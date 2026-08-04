@@ -16,7 +16,7 @@ func TestParseLine(t *testing.T) {
 	}{
 		{
 			name: "valid line",
-			line: "my-session|2|1711900000|1|/home/user/project|1711900100|bash|12345",
+			line: "$0|my-session|2|1711900000|1|/home/user/project|1711900100|bash|12345",
 			check: func(t *testing.T, s Session) {
 				if s.Name != "my-session" {
 					t.Errorf("Name = %q, want %q", s.Name, "my-session")
@@ -34,7 +34,7 @@ func TestParseLine(t *testing.T) {
 		},
 		{
 			name: "not attached",
-			line: "dev|1|1711900000|0|/tmp|1711900050|zsh|99999",
+			line: "$1|dev|1|1711900000|0|/tmp|1711900050|zsh|99999",
 			check: func(t *testing.T, s Session) {
 				if s.Attached {
 					t.Error("Attached = true, want false")
@@ -47,11 +47,15 @@ func TestParseLine(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "session with pipe in path still works with SplitN",
-			line: "test|1|" + itoa(now) + "|0|/home/user|" + itoa(now) + "|bash|123",
+			// A pipe inside a free-form field (name, path) shifts later
+			// columns — a known parsing limitation — but the session ID is
+			// emitted first and can never contain the delimiter, so targeting
+			// (kill/rename/attach) stays correct even for such sessions.
+			name: "pipe in session name keeps the session ID intact",
+			line: "$2|my|piped|1|" + itoa(now) + "|0|/home/user|" + itoa(now) + "|bash|123",
 			check: func(t *testing.T, s Session) {
-				if s.Name != "test" {
-					t.Errorf("Name = %q, want %q", s.Name, "test")
+				if s.ID != "$2" {
+					t.Errorf("ID = %q, want %q", s.ID, "$2")
 				}
 			},
 		},
@@ -78,4 +82,26 @@ func TestParseLine(t *testing.T) {
 
 func itoa(n int64) string {
 	return fmt.Sprintf("%d", n)
+}
+
+// #{session_id}는 이름과 달리 특수문자(. : $ =)가 있을 수 없고 rename에도
+// 불변이므로 모든 -t 타깃의 기준이 된다.
+func TestParseLineSessionID(t *testing.T) {
+	line := "$3|my.session|2|1711900000|1|/home/user/project|1711900100|bash|12345"
+	s, err := parseLine(line)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if s.ID != "$3" {
+		t.Errorf("ID = %q, want %q", s.ID, "$3")
+	}
+	if s.Name != "my.session" {
+		t.Errorf("Name = %q, want %q", s.Name, "my.session")
+	}
+	if s.WindowCount != 2 {
+		t.Errorf("WindowCount = %d, want 2", s.WindowCount)
+	}
+	if s.PanePID != 12345 {
+		t.Errorf("PanePID = %d, want 12345", s.PanePID)
+	}
 }

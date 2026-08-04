@@ -6,6 +6,10 @@ import "time"
 
 // Session represents a tmux session with its metadata and state.
 type Session struct {
+	// ID is the tmux session id (e.g. "$5"). Unlike Name it can never contain
+	// target-syntax characters (. : $ =) and survives renames, so it is the
+	// value to use for every -t target.
+	ID            string
 	Name          string
 	WindowCount   int      // total window count reported by list-sessions
 	Windows       []Window // nil until enumerated via ListWindows

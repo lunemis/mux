@@ -103,16 +103,18 @@ type panesLoadedMsg struct {
 	panes       []tmux.Pane
 }
 
-func loadWindows(sessionName string) tea.Cmd {
+// loadWindows lists windows for the session addressed by target (session ID);
+// sessionName keys the cache the result lands in.
+func loadWindows(sessionName, target string) tea.Cmd {
 	return func() tea.Msg {
-		windows, _ := tmux.ListWindows(sessionName)
+		windows, _ := tmux.ListWindows(target)
 		return windowsLoadedMsg{sessionName: sessionName, windows: windows}
 	}
 }
 
-func loadPanes(sessionName string, windowIndex int) tea.Cmd {
+func loadPanes(sessionName, target string, windowIndex int) tea.Cmd {
 	return func() tea.Msg {
-		panes, _ := tmux.ListPanes(sessionName, windowIndex)
+		panes, _ := tmux.ListPanes(target, windowIndex)
 		return panesLoadedMsg{sessionName: sessionName, windowIndex: windowIndex, panes: panes}
 	}
 }
@@ -164,11 +166,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Refresh windows/panes for expanded subtrees
 		for name := range m.tree.expandedSession {
-			cmds = append(cmds, loadWindows(name))
+			if target := m.sessionTargetByName(name); target != "" {
+				cmds = append(cmds, loadWindows(name, target))
+			}
 		}
 		for sessionName, windows := range m.tree.expandedWindow {
+			target := m.sessionTargetByName(sessionName)
+			if target == "" {
+				continue
+			}
 			for windowIdx := range windows {
-				cmds = append(cmds, loadPanes(sessionName, windowIdx))
+				cmds = append(cmds, loadPanes(sessionName, target, windowIdx))
 			}
 		}
 		return m, tea.Batch(cmds...)
@@ -299,13 +307,13 @@ func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "x":
 			if it := m.currentItem(); it != nil && it.kind == itemSession {
 				m.mode = modeConfirmKill
-				m.confirmKillMod = newConfirmKillModel(it.session.Name)
+				m.confirmKillMod = newConfirmKillModel(it.session.Name, sessionTarget(it.session))
 			}
 
 		case "r":
 			if it := m.currentItem(); it != nil && it.kind == itemSession {
 				m.mode = modeRename
-				m.renameModel = newRenameModel(it.session.Name)
+				m.renameModel = newRenameModel(it.session.Name, sessionTarget(it.session))
 				return m, m.renameModel.input.Focus()
 			}
 
@@ -338,14 +346,14 @@ func (m Model) expandCurrent() (tea.Model, tea.Cmd) {
 		}
 		m.tree.setSessionExpanded(it.session.Name, true)
 		m.rebuildItems()
-		return m, loadWindows(it.session.Name)
+		return m, loadWindows(it.session.Name, sessionTarget(it.session))
 	case itemWindow:
 		if m.tree.isWindowExpanded(it.session.Name, it.window.Index) {
 			return m, nil
 		}
 		m.tree.setWindowExpanded(it.session.Name, it.window.Index, true)
 		m.rebuildItems()
-		return m, loadPanes(it.session.Name, it.window.Index)
+		return m, loadPanes(it.session.Name, sessionTarget(it.session), it.window.Index)
 	}
 	return m, nil
 }
@@ -619,10 +627,21 @@ func renderHelp() string {
 	return strings.Join(parts, helpStyle.Render("  •  "))
 }
 
-// AttachName returns the session name to attach to (if any) after the TUI
+// AttachName returns the tmux target (session ID) to attach to after the TUI
 // exits. Returns empty when no attach was requested.
 func (m Model) AttachName() string {
 	return m.attachTarget.session
+}
+
+// sessionTargetByName resolves a session's -t target from its display name;
+// returns "" when the session no longer exists.
+func (m Model) sessionTargetByName(name string) string {
+	for i := range m.sessions {
+		if m.sessions[i].Name == name {
+			return sessionTarget(&m.sessions[i])
+		}
+	}
+	return ""
 }
 
 // AttachWindowIndex returns the window index selected for attachment, or -1

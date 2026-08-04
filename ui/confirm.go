@@ -8,7 +8,8 @@ import (
 )
 
 type confirmKillModel struct {
-	sessionName string
+	sessionName string // display name
+	target      string // -t target (session ID)
 }
 
 type sessionKilledMsg struct {
@@ -16,8 +17,8 @@ type sessionKilledMsg struct {
 	err  error
 }
 
-func newConfirmKillModel(sessionName string) confirmKillModel {
-	return confirmKillModel{sessionName: sessionName}
+func newConfirmKillModel(sessionName, target string) confirmKillModel {
+	return confirmKillModel{sessionName: sessionName, target: target}
 }
 
 func (m confirmKillModel) Update(msg tea.Msg) (confirmKillModel, tea.Cmd) {
@@ -26,7 +27,7 @@ func (m confirmKillModel) Update(msg tea.Msg) (confirmKillModel, tea.Cmd) {
 		switch msg.String() {
 		case "y", "Y":
 			name := m.sessionName
-			err := tmux.KillSession(name)
+			err := tmux.KillSession(m.target)
 			return m, func() tea.Msg {
 				return sessionKilledMsg{name: name, err: err}
 			}

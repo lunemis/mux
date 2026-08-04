@@ -8,7 +8,8 @@ import (
 
 type renameModel struct {
 	input   textinput.Model
-	oldName string
+	oldName string // display name
+	target  string // -t target (session ID)
 	err     error
 }
 
@@ -17,7 +18,7 @@ type sessionRenamedMsg struct {
 	newName string
 }
 
-func newRenameModel(oldName string) renameModel {
+func newRenameModel(oldName, target string) renameModel {
 	input := textinput.New()
 	input.Placeholder = oldName
 	input.SetValue(oldName)
@@ -28,6 +29,7 @@ func newRenameModel(oldName string) renameModel {
 	return renameModel{
 		input:   input,
 		oldName: oldName,
+		target:  target,
 	}
 }
 
@@ -40,7 +42,7 @@ func (m renameModel) Update(msg tea.Msg) (renameModel, tea.Cmd) {
 			if newName == "" || newName == m.oldName {
 				return m, nil
 			}
-			if err := tmux.RenameSession(m.oldName, newName); err != nil {
+			if err := tmux.RenameSession(m.target, newName); err != nil {
 				m.err = err
 				return m, nil
 			}

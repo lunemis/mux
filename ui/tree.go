@@ -177,15 +177,26 @@ func (k previewKey) target() string {
 	return formatTarget(k.session, k.window, k.pane)
 }
 
+// sessionTarget returns the -t target for a session: the session ID when
+// known, falling back to the name. Names containing target-syntax characters
+// (. : $ =) are only addressable via the ID.
+func sessionTarget(s *tmux.Session) string {
+	if s.ID != "" {
+		return s.ID
+	}
+	return s.Name
+}
+
 // previewKeyForItem returns the previewKey for the given list item.
 func previewKeyForItem(it listItem) previewKey {
+	target := sessionTarget(it.session)
 	switch it.kind {
 	case itemWindow:
-		return previewKey{session: it.session.Name, window: it.window.Index, pane: -1}
+		return previewKey{session: target, window: it.window.Index, pane: -1}
 	case itemPane:
-		return previewKey{session: it.session.Name, window: it.window.Index, pane: it.pane.Index}
+		return previewKey{session: target, window: it.window.Index, pane: it.pane.Index}
 	default:
-		return previewKey{session: it.session.Name, window: -1, pane: -1}
+		return previewKey{session: target, window: -1, pane: -1}
 	}
 }
 
