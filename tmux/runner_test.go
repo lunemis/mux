@@ -56,6 +56,19 @@ func withMock(t *testing.T, fn func(m *mockRunner)) {
 	fn(m)
 }
 
+// tmux writes the actual failure reason ("duplicate session: dev",
+// "can't find session: x") to stderr; a bare "exit status 1" is useless to
+// the user, so Run must surface it.
+func TestExecRunnerRunIncludesStderr(t *testing.T) {
+	err := execRunner{}.Run("sh", "-c", "echo 'duplicate session: dev' >&2; exit 1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "duplicate session: dev") {
+		t.Errorf("error %q should contain the stderr text", err.Error())
+	}
+}
+
 func TestListSessionsWithMock(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
 		now := time.Now().Unix()
