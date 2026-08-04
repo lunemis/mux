@@ -63,15 +63,17 @@ func renderPreview(item *listItem, captured string, width, height int, tokenUsag
 		tokenLine = formatTokenLine(tokenUsage, innerWidth)
 	}
 
-	// Available lines for content (minus header + separator + optional token line)
-	headerLines := 2
+	// Header block: header, [token], separator — truncated when the panel is
+	// shorter than the header itself.
+	header := []string{headerStyled}
 	if tokenLine != "" {
-		headerLines = 3
+		header = append(header, tokenLine)
 	}
-	contentLines := innerHeight - headerLines
-	if contentLines < 1 {
-		contentLines = 1
+	header = append(header, separator)
+	if len(header) > innerHeight {
+		header = header[:innerHeight]
 	}
+	contentLines := innerHeight - len(header)
 
 	capLines := strings.Split(captured, "\n")
 	// Keep last N lines (most recent output)
@@ -79,22 +81,13 @@ func renderPreview(item *listItem, captured string, width, height int, tokenUsag
 		capLines = capLines[len(capLines)-contentLines:]
 	}
 
-	// Build all lines: header, [token], separator, then content
 	allLines := make([]string, innerHeight)
-	lineIdx := 0
-	allLines[lineIdx] = headerStyled
-	lineIdx++
-	if tokenLine != "" {
-		allLines[lineIdx] = tokenLine
-		lineIdx++
-	}
-	allLines[lineIdx] = separator
-	lineIdx++
+	copy(allLines, header)
 	for i := 0; i < contentLines; i++ {
 		if i < len(capLines) {
-			allLines[lineIdx+i] = padOrTruncate(capLines[i], innerWidth)
+			allLines[len(header)+i] = padOrTruncate(capLines[i], innerWidth)
 		} else {
-			allLines[lineIdx+i] = strings.Repeat(" ", innerWidth)
+			allLines[len(header)+i] = strings.Repeat(" ", innerWidth)
 		}
 	}
 

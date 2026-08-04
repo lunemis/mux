@@ -4,6 +4,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/lunemis/mux/tmux"
 )
 
 func TestShortenPath(t *testing.T) {
@@ -63,5 +65,42 @@ func TestRenderPreviewNilSession(t *testing.T) {
 	output := renderPreview(nil, "", 40, 10, nil)
 	if !strings.Contains(output, "No session selected") {
 		t.Error("nil session should show 'No session selected'")
+	}
+}
+
+func TestRenderPreviewSmallHeights(t *testing.T) {
+	item := &listItem{
+		kind: itemSession,
+		session: &tmux.Session{
+			Name:          "work",
+			Directory:     "/tmp/work",
+			ActiveCommand: "claude",
+		},
+	}
+	usages := map[string]*tmux.TokenUsage{
+		"nil-usage": nil,
+		"with-usage": {
+			InputTokens:  100,
+			OutputTokens: 200,
+			TotalCost:    1.23,
+		},
+	}
+	captured := "line1\nline2\nline3\nline4\nline5"
+
+	for name, usage := range usages {
+		for height := 3; height <= 12; height++ {
+			gotLines := func() int {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("%s height=%d: renderPreview panicked: %v", name, height, r)
+					}
+				}()
+				out := renderPreview(item, captured, 40, height, usage)
+				return len(strings.Split(out, "\n"))
+			}()
+			if gotLines != height {
+				t.Errorf("%s height=%d: got %d lines, want %d", name, height, gotLines, height)
+			}
+		}
 	}
 }
