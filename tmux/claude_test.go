@@ -3,6 +3,7 @@ package tmux
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,6 +14,9 @@ func TestEncodePath(t *testing.T) {
 	}{
 		{"/Users/foo/bar", "-Users-foo-bar"},
 		{"/home/user/project", "-home-user-project"},
+		// Claude Code encodes "." as "-" too (e.g. .worktrees, .config).
+		{"/Users/koma/proj/.worktrees/x", "-Users-koma-proj--worktrees-x"},
+		{"/Users/foo/my.app", "-Users-foo-my-app"},
 		{"", ""},
 	}
 	for _, tt := range tests {
@@ -107,5 +111,49 @@ func TestParseTokenUsageMissingFile(t *testing.T) {
 	_, err := parseTokenUsage("/nonexistent/path.jsonl")
 	if err == nil {
 		t.Error("expected error for missing file")
+	}
+}
+
+// Real-world JSONL lines can exceed 1MB (large tool results); they must still
+// be parsed rather than silently truncating the aggregate.
+func TestParseTokenUsageLargeLine(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "large.jsonl")
+
+	pad := strings.Repeat("A", 2*1024*1024)
+	lines := []string{
+		`{"type":"assistant","message":{"usage":{"input_tokens":100,"output_tokens":50,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}},"pad":"` + pad + `"}`,
+		`{"type":"assistant","message":{"usage":{"input_tokens":150,"output_tokens":75,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}`,
+	}
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	usage, err := parseTokenUsage(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if usage.InputTokens != 250 {
+		t.Errorf("InputTokens = %d, want 250", usage.InputTokens)
+	}
+	if usage.OutputTokens != 125 {
+		t.Errorf("OutputTokens = %d, want 125", usage.OutputTokens)
+	}
+}
+
+// A line beyond the scanner cap must surface an error instead of returning a
+// silently partial (and then cached) aggregate.
+func TestParseTokenUsageOversizedLineReturnsError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "oversized.jsonl")
+
+	pad := strings.Repeat("A", maxScanTokenSize+1024)
+	line := `{"type":"assistant","message":{"usage":{"input_tokens":1,"output_tokens":1,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}},"pad":"` + pad + `"}`
+	if err := os.WriteFile(path, []byte(line+"\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := parseTokenUsage(path); err == nil {
+		t.Error("expected error for line exceeding scanner cap")
 	}
 }

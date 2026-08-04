@@ -16,6 +16,10 @@ const (
 	claudeDir         = ".claude"
 	sessionsDir       = "sessions"
 	projectsDir       = "projects"
+
+	// maxScanTokenSize caps a single JSONL line; real session logs carry
+	// multi-megabyte tool results, so this must stay generous.
+	maxScanTokenSize = 16 * 1024 * 1024
 )
 
 // TokenUsage holds aggregated token counts and estimated cost for a Claude session.
@@ -132,7 +136,7 @@ func parseTokenUsage(path string) (*TokenUsage, error) {
 
 	usage := &TokenUsage{}
 	scanner := bufio.NewScanner(f)
-	scanner.Buffer(make([]byte, 256*1024), 1024*1024) // handle large lines
+	scanner.Buffer(make([]byte, 256*1024), maxScanTokenSize)
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
@@ -157,6 +161,11 @@ func parseTokenUsage(path string) (*TokenUsage, error) {
 		usage.CacheWrite += u.CacheCreationInputTokens
 	}
 
+	if err := scanner.Err(); err != nil {
+		// A partial aggregate must not be reported (or cached) as complete.
+		return nil, fmt.Errorf("scan %s: %w", path, err)
+	}
+
 	usage.TotalCost = estimateCost(usage)
 	return usage, nil
 }
@@ -178,9 +187,12 @@ func estimateCost(u *TokenUsage) float64 {
 }
 
 // encodePath converts a filesystem path to the Claude projects directory encoding.
-// "/Users/foo/bar" → "-Users-foo-bar"
+// Claude Code replaces both "/" and "." with "-":
+// "/Users/foo/.worktrees/x" → "-Users-foo--worktrees-x"
+var pathEncoder = strings.NewReplacer(string(os.PathSeparator), "-", ".", "-")
+
 func encodePath(path string) string {
-	return strings.ReplaceAll(path, string(os.PathSeparator), "-")
+	return pathEncoder.Replace(path)
 }
 
 // FormatTokens formats a token count into a short human-readable string.
