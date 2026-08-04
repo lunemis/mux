@@ -2,8 +2,10 @@ package ui
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/lunemis/mux/tmux"
 )
 
@@ -24,6 +26,37 @@ func TestSessionsLoadedClearsListWhenEmpty(t *testing.T) {
 	}
 	if len(m.items) != 0 {
 		t.Errorf("items = %d, want 0 after empty load", len(m.items))
+	}
+}
+
+// kill 실패는 사용자에게 보여야 하고, 직후 세션 목록이 정상 로드되어도
+// 지워지면 안 된다 (키 입력으로만 닫힌다).
+func TestKillErrorIsVisibleAndSurvivesReload(t *testing.T) {
+	m := NewModel()
+	m.width = 80
+	m.height = 20
+
+	updated, _ := m.Update(sessionsLoadedMsg{sessions: []tmux.Session{{Name: "work"}}})
+	m = updated.(Model)
+
+	updated, _ = m.Update(sessionKilledMsg{name: "work", err: errors.New("can't find session: work")})
+	m = updated.(Model)
+	if !strings.Contains(m.View(), "can't find session: work") {
+		t.Error("kill error should be rendered in the main view")
+	}
+
+	// The follow-up successful reload must not wipe the message.
+	updated, _ = m.Update(sessionsLoadedMsg{sessions: []tmux.Session{{Name: "work"}}})
+	m = updated.(Model)
+	if !strings.Contains(m.View(), "can't find session: work") {
+		t.Error("kill error should survive a successful session reload")
+	}
+
+	// Any keypress dismisses it.
+	updated, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = updated.(Model)
+	if strings.Contains(m.View(), "can't find session: work") {
+		t.Error("kill error should clear on the next keypress")
 	}
 }
 

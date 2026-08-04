@@ -50,7 +50,8 @@ type Model struct {
 	mode           mode
 	width          int
 	height         int
-	err            error
+	err            error // last session-list load error
+	opErr          error // last user-operation (kill 등) error; cleared on keypress
 	createModel      createModel
 	renameModel      renameModel
 	filterMod        filterModel
@@ -237,9 +238,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case sessionKilledMsg:
-		if msg.err != nil {
-			m.err = msg.err
-		}
+		// opErr survives the follow-up loadSessions (which resets m.err);
+		// it is cleared by the next keypress instead.
+		m.opErr = msg.err
 		m.mode = modeList
 		if msg.name != "" {
 			return m, loadSessions
@@ -264,6 +265,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) updateList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		m.opErr = nil
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return m, tea.Quit
@@ -541,6 +543,10 @@ func (m Model) viewMain() string {
 		extraBar = m.filterMod.View()
 	} else if m.mode == modeConfirmKill {
 		extraBar = m.confirmKillMod.View()
+	} else if m.opErr != nil {
+		extraBar = errorStyle.Render("error: " + m.opErr.Error())
+	} else if m.err != nil {
+		extraBar = errorStyle.Render("error: " + m.err.Error())
 	} else if m.filterText != "" {
 		extraBar = helpStyle.Render(fmt.Sprintf("filter: %s (esc clear)", m.filterText))
 	}
