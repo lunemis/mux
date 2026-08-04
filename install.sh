@@ -98,9 +98,11 @@ install_binary() {
     local url="https://github.com/${REPO}/releases/download/${version}/${name}.tar.gz"
 
     info "Downloading ${BINARY} ${version} (${OS}/${ARCH})..."
-    local tmp
+    # NOTE: tmp must NOT be `local` — the EXIT trap fires at script exit,
+    # long after this function returned, and under `set -u` referencing a
+    # vanished local aborts the script with "unbound variable" (exit 1).
     tmp="$(mktemp -d)"
-    trap 'rm -rf "$tmp"' EXIT
+    trap '[ -n "${tmp:-}" ] && rm -rf "$tmp"' EXIT
 
     curl -fsSL "$url" -o "${tmp}/${name}.tar.gz" \
         || fail "Download failed. Check https://github.com/${REPO}/releases"
