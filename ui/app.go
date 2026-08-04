@@ -175,7 +175,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case sessionsLoadedMsg:
 		m.err = msg.err
-		if msg.sessions != nil {
+		// An empty result is a real state (last session killed, server gone);
+		// only a listing error leaves the previous list on screen.
+		if msg.err == nil {
 			m.sessions = msg.sessions
 			m.tree.pruneCaches(m.sessions)
 			m.applyFilter()
