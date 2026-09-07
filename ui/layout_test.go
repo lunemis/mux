@@ -166,6 +166,20 @@ func TestSelectorAndHelpCardsApplyExpectedBackgroundToEveryCell(t *testing.T) {
 	})
 }
 
+func TestTitledBorderUsesSeparatorColorOnEveryEdge(t *testing.T) {
+	useSolarizedTrueColor(t)
+
+	const width = 10
+	rendered := drawTitledBorder("title", surfaceSpaces(width-2), width, 1)
+	assertRenderedDimensions(t, rendered, width, 3)
+	lines := strings.Split(rendered, "\n")
+	separator := rgb{r: 7, g: 102, b: 120}
+	assertEveryVisibleCellUsesForeground(t, lines[0], separator)
+	assertEveryVisibleCellUsesForeground(t, ansi.Cut(lines[1], 0, 1), separator)
+	assertEveryVisibleCellUsesForeground(t, ansi.Cut(lines[1], width-1, width), separator)
+	assertEveryVisibleCellUsesForeground(t, lines[2], separator)
+}
+
 func TestSurfaceDoesNotApplyToPreviewCanvasOrModal(t *testing.T) {
 	useSolarizedTrueColor(t)
 
@@ -236,6 +250,34 @@ func assertEveryVisibleCellUsesBackground(t *testing.T, rendered string, expecte
 	}
 }
 
+func assertEveryVisibleCellUsesForeground(t *testing.T, rendered string, expected rgb) {
+	t.Helper()
+	visibleCells := 0
+	var foreground *rgb
+	for offset := 0; offset < len(rendered); {
+		if rendered[offset] == '\x1b' && offset+1 < len(rendered) && rendered[offset+1] == '[' {
+			end := strings.IndexByte(rendered[offset+2:], 'm')
+			if end >= 0 {
+				applyForegroundSGR(rendered[offset+2:offset+2+end], &foreground)
+				offset += end + 3
+				continue
+			}
+		}
+
+		r, size := utf8.DecodeRuneInString(rendered[offset:])
+		if r != '\n' {
+			visibleCells++
+			if foreground == nil || !approximatelyEqualRGB(*foreground, expected) {
+				t.Fatalf("cell %q at byte %d has foreground %v, want %v; rendered:\n%s", r, offset, foreground, expected, ansi.Strip(rendered))
+			}
+		}
+		offset += size
+	}
+	if visibleCells == 0 {
+		t.Fatal("rendered output has no visible cells")
+	}
+}
+
 func assertNoVisibleCellUsesBackground(t *testing.T, rendered string, forbidden rgb) {
 	t.Helper()
 	visibleCells := 0
@@ -288,6 +330,28 @@ func absInt(value int) int {
 		return -value
 	}
 	return value
+}
+
+func applyForegroundSGR(sequence string, foreground **rgb) {
+	parameters := strings.Split(sequence, ";")
+	for i := 0; i < len(parameters); i++ {
+		switch parameters[i] {
+		case "", "0", "39":
+			*foreground = nil
+		case "38":
+			if i+4 >= len(parameters) || parameters[i+1] != "2" {
+				continue
+			}
+			r, errR := strconv.Atoi(parameters[i+2])
+			g, errG := strconv.Atoi(parameters[i+3])
+			b, errB := strconv.Atoi(parameters[i+4])
+			if errR == nil && errG == nil && errB == nil {
+				color := rgb{r: r, g: g, b: b}
+				*foreground = &color
+			}
+			i += 4
+		}
+	}
 }
 
 func applyBackgroundSGR(sequence string, background **rgb) {

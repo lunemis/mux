@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Exported vendor-integration APIs and fields: `AITool`, `IsAICommand`, `LookupAITool`, `TokenUsage`, `FindClaudeSession`, `LoadTokenUsage`, `FormatTokens`, `Session.PanePID`, and `Theme.AITools`. Consumers should use `Session.ActiveCommand`, which now contains tmux's unmodified `pane_current_command` value.
 
 ### Fixed
+- Selector and help cards now use the title-edge color consistently on all four border edges.
 - Configured `space` bindings now match Bubble Tea's literal Space key representation, display visibly in help, and conflict correctly with literal `" "` bindings.
 - `renderPreview` test call missing `captured` parameter
 - `setup-keybind` routes its owned entry to `~/.tmux.conf.local` for [oh-my-tmux](https://github.com/gpakosz/.tmux) users (#15) and replaces only the `# tmux-peeker popup keybinding` marker. Upstream and user-owned bindings remain untouched. `install.sh`'s shell fallback follows the same ownership rule.
