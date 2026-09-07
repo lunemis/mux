@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 )
@@ -16,7 +17,9 @@ func TestParseLine(t *testing.T) {
 	}{
 		{
 			name: "valid line",
-			line: "my-session|2|1711900000|1|/home/user/project|1711900100|bash|12345",
+			line: strings.Join([]string{
+				"my-session", "2", "1711900000", "1", "/home/user/project", "1711900100", "nvim",
+			}, sessionFieldSeparator),
 			check: func(t *testing.T, s Session) {
 				if s.Name != "my-session" {
 					t.Errorf("Name = %q, want %q", s.Name, "my-session")
@@ -33,11 +36,16 @@ func TestParseLine(t *testing.T) {
 				if got := s.LastAttached.Unix(); got != 1711900100 {
 					t.Errorf("LastAttached = %d, want 1711900100", got)
 				}
+				if s.ActiveCommand != "nvim" {
+					t.Errorf("ActiveCommand = %q, want nvim", s.ActiveCommand)
+				}
 			},
 		},
 		{
 			name: "not attached",
-			line: "dev|1|1711900000|0|/tmp|0|zsh|99999",
+			line: strings.Join([]string{
+				"dev", "1", "1711900000", "0", "/tmp", "0", "zsh",
+			}, sessionFieldSeparator),
 			check: func(t *testing.T, s Session) {
 				if s.Attached {
 					t.Error("Attached = true, want false")
@@ -54,10 +62,15 @@ func TestParseLine(t *testing.T) {
 		},
 		{
 			name: "session with pipe in path still works with SplitN",
-			line: "test|1|" + itoa(now) + "|0|/home/user|" + itoa(now) + "|bash|123",
+			line: strings.Join([]string{
+				"test", "1", itoa(now), "0", "/home/user|project", itoa(now), "bash",
+			}, sessionFieldSeparator),
 			check: func(t *testing.T, s Session) {
 				if s.Name != "test" {
 					t.Errorf("Name = %q, want %q", s.Name, "test")
+				}
+				if s.Directory != "/home/user|project" || s.ActiveCommand != "bash" {
+					t.Errorf("parsed path/command = %q/%q, want pipe path and bash", s.Directory, s.ActiveCommand)
 				}
 			},
 		},

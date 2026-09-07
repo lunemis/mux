@@ -252,16 +252,7 @@ func renderSwitcherSelector(m *Model) string {
 	itemRows := switcherRows(len(items), m.height)
 	innerWidth := max(1, width-2)
 
-	var tokenLine string
-	if session := m.currentSession(); session != nil && m.tokenSession == session.Name && m.tokenUsage != nil {
-		tokenLine = formatTokenLine(m.tokenUsage, innerWidth)
-	}
-	bodyRows := itemRows
-	if tokenLine != "" && bodyRows < m.height-4 {
-		bodyRows++
-	}
-
-	lines := make([]string, bodyRows)
+	lines := make([]string, itemRows)
 	if len(items) == 0 {
 		message := "Loading…"
 		if m.pendingDrill == nil {
@@ -288,11 +279,7 @@ func renderSwitcherSelector(m *Model) string {
 			}
 		}
 	}
-	if bodyRows > itemRows {
-		lines[bodyRows-1] = tokenLine
-	}
-
-	return drawTitledBorder(selectorTitle(m.currentItem(), len(items), m.filterText), strings.Join(lines, "\n"), width, bodyRows)
+	return drawTitledBorder(selectorTitle(m.currentItem(), len(items), m.filterText), strings.Join(lines, "\n"), width, itemRows)
 }
 
 func renderSwitcherHelp(keyMap KeyMap, terminalWidth, terminalHeight int) string {

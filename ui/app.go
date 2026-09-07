@@ -55,13 +55,11 @@ type Model struct {
 	confirmKillMod confirmKillModel
 	moveWindowMod  moveWindowModel
 	filterText     string
-	attachTarget   previewKey       // set when we want to attach after quitting (zero value = no attach)
-	focusSession   string           // session name to focus cursor on after next load
-	previewContent string           // cached capture-pane output
-	previewKey     previewKey       // (session, window, pane) the cache belongs to
-	previewPrimed  bool             // prevents session refreshes from duplicating the first capture
-	tokenUsage     *tmux.TokenUsage // cached token usage for current AI session
-	tokenSession   string           // session name the token cache belongs to
+	attachTarget   previewKey // set when we want to attach after quitting (zero value = no attach)
+	focusSession   string     // session name to focus cursor on after next load
+	previewContent string     // cached capture-pane output
+	previewKey     previewKey // (session, window, pane) the cache belongs to
+	previewPrimed  bool       // prevents session refreshes from duplicating the first capture
 }
 
 type tickMsg time.Time
@@ -85,11 +83,6 @@ func loadSessions() tea.Msg {
 type previewLoadedMsg struct {
 	key     previewKey
 	content string
-}
-
-type tokenUsageLoadedMsg struct {
-	sessionName string
-	usage       *tmux.TokenUsage
 }
 
 type windowsLoadedMsg struct {
@@ -127,17 +120,6 @@ func refreshPreview(key previewKey) tea.Cmd {
 	}
 }
 
-func loadTokenUsage(sessionName string, panePID int) tea.Cmd {
-	return func() tea.Msg {
-		sessionID, cwd, err := tmux.FindClaudeSession(panePID)
-		if err != nil {
-			return tokenUsageLoadedMsg{sessionName: sessionName}
-		}
-		usage, _ := tmux.LoadTokenUsage(sessionID, cwd)
-		return tokenUsageLoadedMsg{sessionName: sessionName, usage: usage}
-	}
-}
-
 // NewModel returns a new Model with mux's default keybindings.
 func NewModel() Model {
 	return NewModelWithKeyMap(DefaultKeyMap())
@@ -167,9 +149,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds := []tea.Cmd{loadSessions, tick()}
 		if it := m.currentItem(); it != nil {
 			cmds = append(cmds, refreshPreview(previewKeyForItem(*it)))
-			if tmux.IsAICommand(it.session.ActiveCommand) {
-				cmds = append(cmds, loadTokenUsage(it.session.Name, it.session.PanePID))
-			}
 		}
 		// Refresh windows/panes for expanded subtrees
 		for name := range m.tree.expandedSession {
@@ -232,11 +211,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case previewLoadedMsg:
 		m.previewKey = msg.key
 		m.previewContent = msg.content
-		return m, nil
-
-	case tokenUsageLoadedMsg:
-		m.tokenSession = msg.sessionName
-		m.tokenUsage = msg.usage
 		return m, nil
 
 	case sessionCreatedMsg:

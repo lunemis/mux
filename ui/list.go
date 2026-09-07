@@ -100,10 +100,9 @@ func formatSessionRow(s tmux.Session, expanded, selected bool, width int) string
 
 	ago := timeAgo(s.Created)
 
-	icon, iconColor := commandIconPlain(s.ActiveCommand)
-	var styledIcon string
-	if iconColor != "" {
-		styledIcon = " " + lipgloss.NewStyle().Foreground(lipgloss.Color(iconColor)).Render(icon)
+	command := ""
+	if s.ActiveCommand != "" {
+		command = " " + s.ActiveCommand
 	}
 
 	branch := ""
@@ -112,12 +111,7 @@ func formatSessionRow(s tmux.Session, expanded, selected bool, width int) string
 	}
 
 	text := fmt.Sprintf("%s %s %-18s %s", chevron, status, name, ago)
-	text += styledIcon + branch
-	extraWidth := 0
-	if iconColor != "" {
-		extraWidth = 1
-	}
-	row := padOrTruncate(text, width-extraWidth)
+	row := padOrTruncate(text+command+branch, width)
 
 	if selected {
 		return lipgloss.NewStyle().
@@ -185,15 +179,6 @@ func formatPaneRow(p *tmux.Pane, selected bool, width int) string {
 	return lipgloss.NewStyle().
 		Foreground(colorMuted).
 		Render(row)
-}
-
-// commandIconPlain returns the raw icon and its color for known AI CLIs.
-// Returns empty strings for non-AI commands.
-func commandIconPlain(cmd string) (icon string, color string) {
-	if tool, ok := tmux.LookupAITool(cmd); ok {
-		return tool.Icon, aiToolColor(tool.Name, tool.Color)
-	}
-	return "", ""
 }
 
 func centerText(s string, width int) string {

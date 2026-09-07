@@ -45,6 +45,18 @@ func (m *mockRunner) Run(name string, args ...string) error {
 	return nil
 }
 
+func assertOutputCalls(t *testing.T, m *mockRunner, want []string) {
+	t.Helper()
+	if len(m.outputCalls) != len(want) {
+		t.Fatalf("output calls = %q, want %q", m.outputCalls, want)
+	}
+	for i := range want {
+		if m.outputCalls[i] != want[i] {
+			t.Errorf("output call %d = %q, want %q", i, m.outputCalls[i], want[i])
+		}
+	}
+}
+
 func withMock(t *testing.T, fn func(m *mockRunner)) {
 	t.Helper()
 	t.Setenv("TMUX_PANE", "")
@@ -52,26 +64,24 @@ func withMock(t *testing.T, fn func(m *mockRunner)) {
 	m := newMockRunner()
 	old := runner
 	SetRunner(m)
-	// Clear command cache to avoid cross-test interference
-	cmdCacheMu.Lock()
-	cmdCache = make(map[int]cachedCommand)
-	cmdCacheMu.Unlock()
 	defer func() { runner = old }()
 	fn(m)
 }
 
-func TestListSessionsWithMock(t *testing.T) {
+func TestListSessionsUsesOnlyTmuxData(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
 		t.Setenv("TMUX_PANE", "%9")
 		now := time.Now().Unix()
-		line1 := fmt.Sprintf("dev|2|%d|1|/home/user/dev|%d|bash|100", now-3600, now-3600)
-		line2 := fmt.Sprintf("ai|1|%d|0|/home/user/ai|%d|claude|200", now-7200, now-120)
+		line1 := strings.Join([]string{
+			"dev", "2", fmt.Sprint(now - 3600), "1", "/home/user/dev", fmt.Sprint(now - 3600), "nvim",
+		}, sessionFieldSeparator)
+		line2 := strings.Join([]string{
+			"logs", "1", fmt.Sprint(now - 7200), "0", "/home/user/logs", fmt.Sprint(now - 120), "python",
+		}, sessionFieldSeparator)
 		out := line1 + "\n" + line2
 
 		m.OnOutput([]byte(out), nil, "tmux", "list-sessions", "-F", listFormat)
-		m.OnOutput([]byte("1 0\n"), nil,
-			"ps", "-e", "-o", "pid=", "-o", "ppid=")
-		m.OnOutput([]byte("ai\n"), nil,
+		m.OnOutput([]byte("logs\n"), nil,
 			"tmux", "display-message", "-p", "-t", "%9", "#{session_name}")
 
 		sessions, err := ListSessions()
@@ -81,16 +91,17 @@ func TestListSessionsWithMock(t *testing.T) {
 		if len(sessions) != 2 {
 			t.Fatalf("expected 2 sessions, got %d", len(sessions))
 		}
-		// The current session is first and the UI initially highlights the previous session.
-		if sessions[0].Name != "ai" || sessions[1].Name != "dev" {
-			t.Errorf("session order = [%s %s], want [ai dev]", sessions[0].Name, sessions[1].Name)
+		if sessions[0].Name != "logs" || sessions[1].Name != "dev" {
+			t.Errorf("session order = [%s %s], want [logs dev]", sessions[0].Name, sessions[1].Name)
+		}
+		if sessions[0].ActiveCommand != "python" || sessions[1].ActiveCommand != "nvim" {
+			t.Errorf("raw commands = [%q %q], want [python nvim]", sessions[0].ActiveCommand, sessions[1].ActiveCommand)
 		}
 		if !sessions[0].Current || sessions[1].Current {
 			t.Errorf("Current flags = [%t %t], want [true false]", sessions[0].Current, sessions[1].Current)
 		}
 		assertOutputCalls(t, m, []string{
 			"tmux list-sessions -F " + listFormat,
-			"ps -e -o pid= -o ppid=",
 			"tmux display-message -p -t %9 #{session_name}",
 		})
 	})
@@ -128,22 +139,6 @@ func TestCurrentSessionNameOutsideTmuxIsEmpty(t *testing.T) {
 		}
 		if len(m.outputs) != 0 {
 			t.Errorf("unexpected tmux output calls configured: %d", len(m.outputs))
-		}
-	})
-}
-
-func TestResolveCommandWithMock(t *testing.T) {
-	withMock(t, func(m *mockRunner) {
-		// pgrep returns child PIDs
-		m.OnOutput([]byte("42\n43\n"), nil, "pgrep", "-P", "100")
-		// ps for PID 42 returns bash
-		m.OnOutput([]byte("/bin/bash\n"), nil, "ps", "-o", "args=", "-p", "42")
-		// ps for PID 43 returns claude
-		m.OnOutput([]byte("/usr/local/bin/claude --help\n"), nil, "ps", "-o", "args=", "-p", "43")
-
-		result := resolveCommand(100, "bash")
-		if result != "claude" {
-			t.Errorf("expected 'claude', got %q", result)
 		}
 	})
 }

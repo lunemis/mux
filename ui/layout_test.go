@@ -12,7 +12,7 @@ import (
 
 func TestLayoutDimensions(t *testing.T) {
 	sessions := []tmux.Session{
-		{Name: "claude", WindowCount: 1, Created: time.Now().Add(-2 * time.Hour), Attached: true, Directory: "/Users/test/workspace/project1"},
+		{Name: "editor", WindowCount: 1, Created: time.Now().Add(-2 * time.Hour), Attached: true, Directory: "/Users/test/workspace/project1"},
 		{Name: "dev-server", WindowCount: 2, Created: time.Now().Add(-24 * time.Hour), Attached: false, Directory: "/Users/test/workspace/project2"},
 		{Name: "deploy", WindowCount: 1, Created: time.Now().Add(-48 * time.Hour), Attached: false, Directory: "/Users/test/workspace/project3"},
 	}
@@ -37,6 +37,18 @@ func TestLayoutDimensions(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestSessionRowDisplaysGenericCommand(t *testing.T) {
+	row := ansi.Strip(formatSessionRow(tmux.Session{
+		Name:          "work",
+		Created:       time.Now(),
+		ActiveCommand: "nvim",
+	}, false, false, 60))
+
+	if !strings.Contains(row, "nvim") {
+		t.Fatalf("session row = %q, want generic pane command", row)
 	}
 }
 
@@ -67,7 +79,7 @@ func TestOverlayCenteredPreservesFullscreenCanvas(t *testing.T) {
 func TestOverlayCenteredHandlesANSIAndWideCharacters(t *testing.T) {
 	const width, height = 18, 5
 	background := "界界界界界界界界界\n" + strings.Repeat("x\n", height-2) + strings.Repeat("y", width)
-	foreground := titleStyle.Render("╭─ ✦ ─╮\n│ mux │\n╰─────╯")
+	foreground := titleStyle.Render("╭─ ◆ ─╮\n│ mux │\n╰─────╯")
 
 	output := overlayCentered(background, foreground, width, height)
 	for i, line := range strings.Split(output, "\n") {

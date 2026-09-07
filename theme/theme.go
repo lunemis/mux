@@ -27,11 +27,10 @@ type Colors struct {
 	Text       string `json:"text"`
 }
 
-// Theme contains a named UI palette and colors for known AI tools.
+// Theme contains a named semantic UI palette.
 type Theme struct {
-	Name    string            `json:"name"`
-	Colors  Colors            `json:"colors"`
-	AITools map[string]string `json:"ai_tools"`
+	Name   string `json:"name"`
+	Colors Colors `json:"colors"`
 }
 
 //go:embed *.json
@@ -96,11 +95,6 @@ func (t Theme) validate() error {
 	for _, color := range required {
 		if color.value == "" {
 			return fmt.Errorf("theme color %q is required", color.name)
-		}
-	}
-	for tool, color := range t.AITools {
-		if color == "" {
-			return fmt.Errorf("AI tool color %q is required", tool)
 		}
 	}
 	return nil

@@ -244,21 +244,6 @@ func TestContextualPickerTitleTracksHierarchy(t *testing.T) {
 	}
 }
 
-func TestSwitcherSelectorKeepsTokenUsageOffPreviewCanvas(t *testing.T) {
-	m := NewModel()
-	m.width = 100
-	m.height = 30
-	m.sessions = []tmux.Session{{Name: "work"}}
-	m.applyFilter()
-	m.tokenSession = "work"
-	m.tokenUsage = &tmux.TokenUsage{InputTokens: 1200, OutputTokens: 300, TotalCost: 1.25}
-
-	selector := ansi.Strip(renderSwitcherSelector(&m))
-	if !strings.Contains(selector, "in / ") || !strings.Contains(selector, "~$1.25") {
-		t.Fatalf("selector should retain token usage after preview chrome removal: %q", selector)
-	}
-}
-
 func TestSwitcherSelectorTitleTracksHierarchy(t *testing.T) {
 	m := NewModel()
 	m.width = 100

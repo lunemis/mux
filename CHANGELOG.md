@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cross-platform `shortenPath` using `os.UserHomeDir()` instead of hardcoded `/Users/`
 - Go version in go.mod updated to stable release
 
+### Removed
+- Vendor-specific process detection, badges, token and cost tracking, theme fields, and filesystem integrations. Generic tmux command display, previews, and Git branch/worktree metadata remain.
+- The `mux status` command and its statusbar integration.
+- Exported vendor-integration APIs and fields: `AITool`, `IsAICommand`, `LookupAITool`, `TokenUsage`, `FindClaudeSession`, `LoadTokenUsage`, `FormatTokens`, `Session.PanePID`, and `Theme.AITools`. Consumers should use `Session.ActiveCommand`, which now contains tmux's unmodified `pane_current_command` value.
+
 ### Fixed
 - `renderPreview` test call missing `captured` parameter
 - `setup-keybind` no longer corrupts `~/.tmux.conf` for [oh-my-tmux](https://github.com/gpakosz/.tmux) users (#15). Detects oh-my-tmux via symlink target or signature line, routes the bind line to `~/.tmux.conf.local` before the `# "$@"` sentinel, and cleans up any prior corrupt entry (including legacy untagged binds from older `install.sh`) from the main conf. `install.sh`'s shell fallback received the same treatment.

@@ -12,15 +12,22 @@ import (
 )
 
 type themeFile struct {
-	Name    string            `json:"name"`
-	Colors  map[string]string `json:"colors"`
-	AITools map[string]string `json:"ai_tools"`
+	Name   string            `json:"name"`
+	Colors map[string]string `json:"colors"`
 }
 
 func TestDefaultThemeContainsEveryColorRole(t *testing.T) {
 	data, err := os.ReadFile("default.json")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		t.Fatalf("parse default theme fields: %v", err)
+	}
+	if len(fields) != 2 || fields["name"] == nil || fields["colors"] == nil {
+		t.Errorf("default theme fields = %v, want only name and colors", fields)
 	}
 
 	var got themeFile
@@ -37,10 +44,6 @@ func TestDefaultThemeContainsEveryColorRole(t *testing.T) {
 		"border", "separator", "selected", "cursor", "text",
 	} {
 		assertHexColor(t, "colors."+role, got.Colors[role])
-	}
-
-	for _, tool := range []string{"claude", "codex", "aider", "gemini"} {
-		assertHexColor(t, "ai_tools."+tool, got.AITools[tool])
 	}
 }
 
@@ -94,9 +97,6 @@ func TestLoadDefaultTheme(t *testing.T) {
 	}
 	if got.Colors.Separator != "#2563EB" {
 		t.Errorf("Colors.Separator = %q, want #2563EB", got.Colors.Separator)
-	}
-	if got.AITools["claude"] != "#F59E0B" {
-		t.Errorf("AITools[claude] = %q, want #F59E0B", got.AITools["claude"])
 	}
 }
 

@@ -10,7 +10,14 @@ import (
 )
 
 const (
-	listFormat       = "#{session_name}|#{session_windows}|#{session_created}|#{session_attached}|#{pane_current_path}|#{session_last_attached}|#{pane_current_command}|#{pane_pid}"
+	sessionFieldSeparator = "\x1f"
+	listFormat            = "#{session_name}" + sessionFieldSeparator +
+		"#{session_windows}" + sessionFieldSeparator +
+		"#{session_created}" + sessionFieldSeparator +
+		"#{session_attached}" + sessionFieldSeparator +
+		"#{pane_current_path}" + sessionFieldSeparator +
+		"#{session_last_attached}" + sessionFieldSeparator +
+		"#{pane_current_command}"
 	originSessionEnv = "MUX_ORIGIN_SESSION"
 )
 
@@ -39,7 +46,6 @@ func ListSessions() ([]Session, error) {
 		}
 		sessions = append(sessions, s)
 	}
-	resolveSessionCommands(sessions)
 
 	current := currentSessionForSwitcher(sessions, currentSessionName())
 	sortSessionsForSwitcher(sessions, current)
@@ -48,8 +54,8 @@ func ListSessions() ([]Session, error) {
 }
 
 func parseLine(line string) (Session, error) {
-	parts := strings.SplitN(line, "|", 8)
-	if len(parts) < 8 {
+	parts := strings.SplitN(line, sessionFieldSeparator, 7)
+	if len(parts) < 7 {
 		return Session{}, fmt.Errorf("unexpected format: %s", line)
 	}
 
@@ -57,7 +63,6 @@ func parseLine(line string) (Session, error) {
 	createdUnix, _ := strconv.ParseInt(parts[2], 10, 64)
 	attached, _ := strconv.Atoi(parts[3])
 	lastAttachedUnix, _ := strconv.ParseInt(parts[5], 10, 64)
-	panePID, _ := strconv.Atoi(parts[7])
 
 	var lastAttached time.Time
 	if lastAttachedUnix > 0 {
@@ -74,7 +79,6 @@ func parseLine(line string) (Session, error) {
 		Attached:      attached > 0,
 		Directory:     parts[4],
 		ActiveCommand: parts[6],
-		PanePID:       panePID,
 		GitBranch:     gitInfo.Branch,
 		IsWorktree:    gitInfo.IsWorktree,
 	}, nil

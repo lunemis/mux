@@ -77,42 +77,11 @@ func main() {
 		},
 	}
 
-	statusCmd := &cobra.Command{
-		Use:   "status",
-		Short: "Show AI session summary for tmux statusbar",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStatus()
-		},
-	}
-
-	rootCmd.AddCommand(popupCmd, setupKeybindCmd, statusCmd)
+	rootCmd.AddCommand(popupCmd, setupKeybindCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-func runStatus() error {
-	sessions, err := tmux.ListSessions()
-	if err != nil {
-		return err
-	}
-
-	var parts []string
-	for _, s := range sessions {
-		tool, ok := tmux.LookupAITool(s.ActiveCommand)
-		if !ok {
-			continue
-		}
-		parts = append(parts, tool.Icon)
-	}
-
-	if len(parts) == 0 {
-		return nil // no AI sessions, output nothing
-	}
-
-	fmt.Print(fmt.Sprintf(" %s ", joinWith(parts, " ")))
-	return nil
 }
 
 func joinWith(parts []string, sep string) string {

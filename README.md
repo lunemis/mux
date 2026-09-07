@@ -1,45 +1,31 @@
 # mux
 
-**Switch between AI CLI sessions without breaking your flow.**
+**A fast tmux session switcher with live previews.**
 
-Running Claude in one session, Codex in another, and a dev server in a third? Switching between them means detaching, listing sessions, remembering which is which, and reattaching. mux eliminates that friction — see every session's live output at a glance, spot which AI tools are active, and switch in a keystroke.
+When work spans several tmux sessions, windows, and panes, finding the right terminal should not interrupt your flow. mux shows the selected target's live output and lets you switch in a keystroke.
 
 [한국어](README.ko.md)
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)
+![Go](https://img.shields.io/badge/Go-1.24.2+-00ADD8?style=flat&logo=go)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
-
-![Demo](assets/demo.gif)
 
 ## The Problem
 
-In the age of AI-powered development, a typical workflow looks like:
-
-- **Session 1**: Claude Code working on your feature
-- **Session 2**: Codex reviewing your test suite
-- **Session 3**: Dev server running your app
-- **Session 4**: Another Claude session refactoring a different module
-
-tmux's built-in `choose-session` shows you a list of names — but which session has Claude waiting for your input? Which one is still running? You end up cycling through sessions blindly.
+tmux's built-in `choose-session` gives you names but not enough context to identify the terminal you need. You end up cycling through sessions, windows, and panes to find the right process.
 
 ## How mux solves it
 
 ### Fullscreen live preview — every window and pane
 See the selected target's terminal output across the full mux canvas before you switch. A compact picker floats in the center while the preview follows your selection. Press `l`, `Right`, or `Tab` to drill from sessions into windows and panes; use `h`, `Left`, or `Shift+Tab` to return.
 
-### AI CLI detection
-`claude`, `codex`, `aider`, `gemini` are automatically detected and highlighted with badges — instantly find the right session.
+### Generic command display
+Session and pane rows show the command reported directly by tmux, without process-specific integrations.
 
 ### Git branch & worktree display
 Each session shows its current git branch. Linked worktrees are visually distinguished so you can tell at a glance which sessions are working on isolated branches.
 
-### Cost & token tracking
-For Claude Code sessions, mux reads session logs to display real-time token usage and estimated cost — no configuration needed.
-
 ### Popup overlay
-Press one key to summon mux on top of whatever you're doing — even mid-conversation with an AI CLI. Pick a session and you're there.
-
-![Popup mode](assets/popup.gif)
+Press one key to summon mux on top of whatever you're doing. Pick a session and you're there.
 
 ### Vim-style navigation
 `j`/`k` to browse, `/` to filter, `Enter` or `Backspace` to attach. No mouse needed.
@@ -99,8 +85,6 @@ go install github.com/lunemis/mux/cmd/mux@latest
 
 Run `mux` to open the session manager. Use `j`/`k` to navigate, `Enter` or `Backspace` to attach, and `q` to quit.
 
-![Screenshot](assets/screenshot.png)
-
 A one-row contextual title (`tmux session picker`, `tmux window picker`, or `tmux pane picker`) sits above the selected target's **live preview**, updated every 500ms. The preview fills every remaining row edge-to-edge with no outer border or separator. A compact picker floats in the center and shows one hierarchy level at a time. The preview remains anchored at the bottom-left so prompts and status rows stay visible. Press `?` to toggle contextual key help.
 
 Sessions behave like an OS window switcher. Inside tmux, the current invoking session appears first, the previously used session appears second and is initially highlighted, and older sessions follow in MRU order. Pressing `Enter` or `Backspace` immediately switches to the highlighted previous session; reopening mux highlights the session you just left. Background output does not reorder the list. Outside tmux, the list remains MRU-first. Never-visited sessions fall back to newest creation time, then name.
@@ -151,7 +135,7 @@ mux
 
 Theme precedence is `--theme`, then `MUX_THEME`, then the XDG config, then `default`.
 
-Theme palettes live in [`theme/*.json`](theme/). To add a built-in theme, copy an existing file, give it a unique `name`, update its semantic UI and AI-tool colors, then rebuild mux. Set `colors.background` to `"NONE"` to preserve your terminal's background. The switcher selector's titled top edge uses `colors.separator` (`#2563EB` blue in the default theme) independently from its remaining `colors.border` edges. Theme files are embedded into the binary at build time.
+Theme palettes live in [`theme/*.json`](theme/). To add a built-in theme, copy an existing file, give it a unique `name`, update its semantic UI colors, then rebuild mux. Set `colors.background` to `"NONE"` to preserve your terminal's background. The switcher selector's titled top edge uses `colors.separator` (`#2563EB` blue in the default theme) independently from its remaining `colors.border` edges. Theme files are embedded into the binary at build time.
 
 ### Custom keybindings
 
@@ -205,7 +189,7 @@ To move a window, drill into a session, select a window, and press `m`. Choose a
 
 ### Popup mode (recommended)
 
-Open mux as a borderless fullscreen task switcher inside tmux — it works even while AI CLIs are running in the foreground.
+Open mux as a borderless fullscreen task switcher inside tmux, regardless of the program running in the foreground.
 
 ```bash
 # Set up the keybinding (one-time)
@@ -216,26 +200,6 @@ mux setup-keybind Space    # or use a different key
 Run the reload command printed by `setup-keybind`. You can also open the popup manually with `mux popup`.
 
 > **Note:** Popup mode requires tmux 3.2+
-
-### Statusbar widget
-
-Show AI session icons in your tmux status bar without opening the TUI:
-
-```bash
-# Add to ~/.tmux.conf
-set -g status-right '#(mux status)'
-```
-
-This runs `mux status` which outputs a compact summary like `✦ ◈` when AI sessions are active.
-
-### Works with skimd
-
-Pair with [skimd](https://github.com/lunemis/skimd) to review AI-generated markdown docs without leaving tmux.
-
-- `prefix+m` → **mux** — switch sessions
-- `prefix+v` → **skimd** — skim documents
-
-![mux + skimd workflow](assets/workflow.gif)
 
 ### Default keybindings
 

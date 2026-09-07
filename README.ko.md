@@ -1,24 +1,20 @@
 # mux
 
-**AI CLI 세션 간 전환을 빠르고 직관적으로.**
+**실시간 프리뷰를 제공하는 빠른 tmux 세션 전환기.**
 
-tmux 세션을 터미널에서 빠르게 탐색하고 관리하는 TUI 도구입니다.
+tmux 세션, 윈도우, 페인을 터미널에서 빠르게 탐색하고 관리하는 TUI 도구입니다.
 
 [English](README.md)
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)
+![Go](https://img.shields.io/badge/Go-1.24.2+-00ADD8?style=flat&logo=go)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
-
-![Demo](assets/demo.gif)
 
 ## 기능
 
 - **전체 화면 실시간 프리뷰** — 선택한 세션·윈도우·페인의 터미널 출력을 전체 mux 화면에 표시 (500ms 주기 갱신). 가운데의 작은 선택 창에서 `l`/`→`/`Tab`으로 하위 단계에 들어가고 `h`/`←`/`Shift+Tab`으로 돌아가기
-- **AI CLI 감지** — `claude`, `codex`, `aider`, `gemini` 등의 AI CLI가 실행 중이면 배지로 표시
-- **Git 브랜치 표시** — 각 세션의 현재 브랜치를 표시, worktree는 `⌥⌥`로 구분
-- **비용/토큰 추적** — Claude Code 세션의 토큰 사용량과 예상 비용을 실시간 표시 (설정 불필요)
-- **상태바 위젯** — `mux status`로 tmux 상태바에 AI 세션 아이콘 표시
-- **팝업 오버레이** — AI CLI 실행 중에도 키 하나로 mux를 띄워 세션 전환
+- **일반 명령어 표시** — tmux가 보고한 명령어를 별도의 프로그램별 연동 없이 세션과 페인 행에 표시
+- **Git 브랜치 표시** — 각 세션의 현재 Git 브랜치를 표시하고 연결된 worktree를 구분
+- **팝업 오버레이** — 실행 중인 프로그램과 관계없이 키 하나로 mux를 띄워 세션 전환
 - **세션 관리** — TUI 내에서 생성/삭제/이름 변경
 - **퀵 필터** — `/` 키로 세션 이름 또는 경로를 실시간 필터링
 
@@ -77,8 +73,6 @@ go install github.com/lunemis/mux/cmd/mux@latest
 
 `mux`를 실행하면 세션 매니저가 열립니다. `j`/`k`로 탐색하고 `Enter` 또는 `Backspace`로 attach하며 `q`로 종료합니다.
 
-![Screenshot](assets/screenshot.png)
-
 맨 위 한 줄에는 현재 단계에 따라 `tmux session picker`, `tmux window picker`, `tmux pane picker` 제목이 가운데 표시됩니다. 선택한 대상의 **실시간 프리뷰**는 별도의 바깥 테두리나 구분선 없이 나머지 모든 행을 채우며 500ms마다 갱신됩니다. 가운데에는 현재 계층 한 단계만 보여 주는 작은 선택 창이 떠 있습니다. 프롬프트와 상태 행이 잘 보이도록 프리뷰는 왼쪽 아래를 기준으로 유지되며, `?`를 누르면 상황별 키 도움말을 열고 닫을 수 있습니다.
 
 세션은 OS 창 전환기처럼 동작합니다. tmux 안에서는 mux를 호출한 현재 세션이 첫 번째에, 직전에 사용한 세션이 두 번째에 표시되며 두 번째 세션이 처음부터 선택됩니다. 그 뒤에는 이전 세션들이 MRU 순서로 이어집니다. 바로 `Enter` 또는 `Backspace`를 누르면 선택된 직전 세션으로 전환되고, mux를 다시 열면 방금 떠난 세션이 선택됩니다. 백그라운드 출력은 목록 순서를 바꾸지 않습니다. tmux 밖에서는 MRU 우선 순서를 유지합니다. 한 번도 방문하지 않은 세션은 생성 시간(최신 우선), 그다음 이름 순으로 정렬됩니다.
@@ -119,7 +113,7 @@ mux --theme solarized-gruvbox popup
 
 현재 환경에만 적용하려면 `MUX_THEME=solarized-gruvbox`를 설정하세요. 우선순위는 `--theme`, `MUX_THEME`, XDG 설정, `default` 순입니다.
 
-테마 팔레트는 [`theme/*.json`](theme/)에 있으며 바이너리에 내장됩니다. 새 내장 테마를 추가할 때는 기존 파일을 복사해 고유한 `name`, 모든 UI 의미 색상, AI 도구 색상을 지정하세요. 터미널 배경을 유지하려면 `colors.background`를 `"NONE"`으로 설정합니다. 선택 창의 제목이 있는 위쪽 테두리는 `colors.separator`를 사용하며 나머지 `colors.border` 테두리와 독립적입니다.
+테마 팔레트는 [`theme/*.json`](theme/)에 있으며 바이너리에 내장됩니다. 새 내장 테마를 추가할 때는 기존 파일을 복사해 고유한 `name`과 모든 UI 의미 색상을 지정하세요. 터미널 배경을 유지하려면 `colors.background`를 `"NONE"`으로 설정합니다. 선택 창의 제목이 있는 위쪽 테두리는 `colors.separator`를 사용하며 나머지 `colors.border` 테두리와 독립적입니다.
 
 ### 커스텀 키바인딩
 
@@ -184,28 +178,6 @@ mux setup-keybind Space    # 다른 키로 변경 가능
 `setup-keybind`가 출력하는 리로드 명령을 실행하세요. `mux popup`으로 수동 실행도 가능합니다.
 
 > **참고:** tmux 3.2 이상 필요
-
-![Popup mode](assets/popup.gif)
-
-### 상태바 위젯
-
-TUI를 열지 않고 tmux 상태바에서 AI 세션 아이콘을 표시:
-
-```bash
-# ~/.tmux.conf에 추가
-set -g status-right '#(mux status)'
-```
-
-AI 세션이 활성화되면 `✦ ◈` 같은 아이콘이 상태바에 표시됩니다.
-
-### skimd 연동
-
-마크다운 뷰어 [skimd](https://github.com/lunemis/skimd)와 함께 쓰면 AI가 생성한 문서를 tmux 안에서 바로 검토할 수 있습니다.
-
-- `prefix+m` → **mux** — 세션 전환
-- `prefix+v` → **skimd** — 문서 훑기
-
-![mux + skimd workflow](assets/workflow.gif)
 
 ### 기본 키바인딩
 

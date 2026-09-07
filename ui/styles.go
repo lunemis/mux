@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	activeTheme     theme.Theme
 	applyBackground bool
 
 	// Colors
@@ -37,7 +36,6 @@ func init() {
 
 // UseTheme applies a loaded theme to subsequent UI rendering.
 func UseTheme(value theme.Theme) {
-	activeTheme = value
 	background := strings.TrimSpace(value.Colors.Background)
 	applyBackground = background != "" && !strings.EqualFold(background, "NONE")
 	colorBackground = lipgloss.Color("")
@@ -59,11 +57,4 @@ func UseTheme(value theme.Theme) {
 	helpKeyStyle = lipgloss.NewStyle().Foreground(colorAccent).Bold(true)
 	errorStyle = lipgloss.NewStyle().Foreground(colorDanger).Bold(true)
 	inputLabelStyle = lipgloss.NewStyle().Foreground(colorAccent).Bold(true)
-}
-
-func aiToolColor(name, fallback string) string {
-	if color := activeTheme.AITools[name]; color != "" {
-		return color
-	}
-	return fallback
 }

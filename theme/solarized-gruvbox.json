@@ -12,11 +12,5 @@
     "selected": "#D5C4A1",
     "cursor": "#8F3F71",
     "text": "#3C3836"
-  },
-  "ai_tools": {
-    "claude": "#AF3A03",
-    "codex": "#076678",
-    "aider": "#79740E",
-    "gemini": "#8F3F71"
   }
 }

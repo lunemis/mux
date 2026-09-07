@@ -1,12 +1,6 @@
 package ui
 
-import (
-	"fmt"
-	"strings"
-
-	"github.com/charmbracelet/lipgloss"
-	"github.com/lunemis/mux/tmux"
-)
+import "strings"
 
 // renderPreview renders captured terminal cells across the exact canvas. It
 // keeps the bottom-left visible when the source is larger and pads above/right
@@ -33,13 +27,4 @@ func renderPreview(captured string, width, height int) string {
 		lines[start+i] = padOrTruncate(line, width)
 	}
 	return strings.Join(lines, "\n")
-}
-
-func formatTokenLine(u *tmux.TokenUsage, width int) string {
-	text := fmt.Sprintf("  %s in / %s out  ~$%.2f",
-		tmux.FormatTokens(u.InputTokens),
-		tmux.FormatTokens(u.OutputTokens),
-		u.TotalCost)
-	return lipgloss.NewStyle().Foreground(colorMuted).Render(
-		padOrTruncate(text, width))
 }
