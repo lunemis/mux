@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/test-fixture.sh` for spinning up test sessions with multiple windows/panes
 
 ### Changed
+- New Session now asks only for a name and lets tmux choose the normal starting directory.
 - Selector and help cards now use an opaque semantic `surface` color across titles, borders, normal rows, padding, and blank cells while preserving the selected-row and terminal-canvas backgrounds.
 - Renamed the independent fork to `tmux-peeker`, including its binary, Go module, config directory, environment variables, tmux marker, installer, release metadata, and documentation. The new identity intentionally provides no `mux` executable alias or automatic upstream-state migration.
 - Session ordering now behaves like an OS switcher: the invoking session is displayed first, the previous session is displayed second and initially highlighted, and older sessions follow in MRU order; background output no longer changes recency.
@@ -40,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go version in go.mod updated to stable release
 
 ### Removed
+- The unused New Session directory field, its `create.switch_field` keybinding, and `CreateSessionWithDir` helper.
 - Vendor-specific process detection, badges, token and cost tracking, theme fields, and filesystem integrations. Generic tmux command display, previews, and Git branch/worktree metadata remain.
 - The `mux status` command and its statusbar integration.
 - Exported vendor-integration APIs and fields: `AITool`, `IsAICommand`, `LookupAITool`, `TokenUsage`, `FindClaudeSession`, `LoadTokenUsage`, `FormatTokens`, `Session.PanePID`, and `Theme.AITools`. Consumers should use `Session.ActiveCommand`, which now contains tmux's unmodified `pane_current_command` value.

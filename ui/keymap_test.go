@@ -31,9 +31,8 @@ func TestDefaultKeyMapContainsEveryTmuxPeekerAction(t *testing.T) {
 			"quit":         {"q"},
 		},
 		"create": {
-			"switch_field": {"tab", "shift+tab"},
-			"submit":       {"enter"},
-			"cancel":       {"esc"},
+			"submit": {"enter"},
+			"cancel": {"esc"},
 		},
 		"rename": {
 			"submit": {"enter"},
@@ -56,6 +55,9 @@ func TestDefaultKeyMapContainsEveryTmuxPeekerAction(t *testing.T) {
 	}
 
 	got := DefaultKeyMap()
+	if keys := got.Keys(contextCreate, "switch_field"); len(keys) != 0 {
+		t.Errorf("create.switch_field = %#v, want removed action", keys)
+	}
 	for context, actions := range want {
 		for action, keys := range actions {
 			if actual := got.Keys(context, action); !reflect.DeepEqual(actual, keys) {
@@ -107,6 +109,11 @@ func TestNewKeyMapRejectsInvalidConfiguration(t *testing.T) {
 			name:      "unknown action",
 			overrides: map[string]map[string][]string{"list": {"explode": {"e"}}},
 			wantError: "unknown keybinding action \"list.explode\"",
+		},
+		{
+			name:      "removed create field switch",
+			overrides: map[string]map[string][]string{"create": {"switch_field": {"tab"}}},
+			wantError: "unknown keybinding action \"create.switch_field\"",
 		},
 		{
 			name:      "no keys",

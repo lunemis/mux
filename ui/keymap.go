@@ -47,9 +47,8 @@ var defaultBindings = map[string]map[string][]string{
 		"quit":         {"q"},
 	},
 	contextCreate: {
-		"switch_field": {"tab", "shift+tab"},
-		"submit":       {"enter"},
-		"cancel":       {"esc"},
+		"submit": {"enter"},
+		"cancel": {"esc"},
 	},
 	contextRename: {
 		"submit": {"enter"},

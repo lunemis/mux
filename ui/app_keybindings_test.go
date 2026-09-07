@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -71,20 +73,16 @@ func TestReplacedListBindingStopsUsingItsDefault(t *testing.T) {
 
 func TestConfiguredModalBindingsDriveEveryMode(t *testing.T) {
 	keyMap := mustKeyMap(t, map[string]map[string][]string{
-		"create": {"switch_field": {"v"}, "cancel": {"b"}},
+		"create": {"cancel": {"b"}},
 		"rename": {"cancel": {"b"}},
 		"filter": {"clear": {"u"}},
 		"kill":   {"cancel": {"n"}},
 	})
 
-	t.Run("create switch and cancel", func(t *testing.T) {
+	t.Run("create cancel", func(t *testing.T) {
 		m := NewModelWithKeyMap(keyMap)
 		m.mode = modeCreate
 		m.createModel = newCreateModel()
-		m = updateModel(t, m, runeKey("v"))
-		if m.createModel.focused != 1 {
-			t.Fatalf("custom switch field focus = %d, want 1", m.createModel.focused)
-		}
 		m = updateModel(t, m, runeKey("b"))
 		if m.mode != modeList {
 			t.Fatalf("custom create cancel mode = %v, want modeList", m.mode)
@@ -132,6 +130,66 @@ func TestConfiguredModalBindingsDriveEveryMode(t *testing.T) {
 	})
 }
 
+func TestCreateModalOnlyRequestsSessionName(t *testing.T) {
+	view := ansi.Strip(newCreateModel().View(DefaultKeyMap()))
+	assertContainsAll(t, view, "New Session", "Name:", "create", "cancel")
+	for _, removed := range []string{"Dir:", "switch"} {
+		if strings.Contains(view, removed) {
+			t.Errorf("create modal contains removed %q control: %q", removed, view)
+		}
+	}
+}
+
+func TestCreateSubmitUsesTmuxDefaultDirectory(t *testing.T) {
+	dir := t.TempDir()
+	argsPath := filepath.Join(dir, "args")
+	fakeTmux := filepath.Join(dir, "tmux")
+	script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > \"$TMUX_PEEKER_TEST_ARGS\"\n"
+	if err := os.WriteFile(fakeTmux, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("TMUX_PEEKER_TEST_ARGS", argsPath)
+
+	model := newCreateModel()
+	model.nameInput.SetValue("new-session")
+	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyEnter}, DefaultKeyMap())
+	if cmd == nil {
+		t.Fatal("create submit returned no command")
+	}
+	message, ok := cmd().(sessionCreatedMsg)
+	if !ok || message.name != "new-session" {
+		t.Fatalf("create submit message = %#v, want new-session", message)
+	}
+	args, err := os.ReadFile(argsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(args), "new-session\n-d\n-s\nnew-session\n"; got != want {
+		t.Fatalf("tmux args = %q, want %q", got, want)
+	}
+}
+
+func TestConfiguredCreateCancelCanKeepEscAlongsideControlKey(t *testing.T) {
+	keyMap := mustKeyMap(t, map[string]map[string][]string{
+		"create": {"cancel": {"esc", "ctrl+x"}},
+	})
+	for name, key := range map[string]tea.KeyMsg{
+		"escape":  {Type: tea.KeyEsc},
+		"control": {Type: tea.KeyCtrlX},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := NewModelWithKeyMap(keyMap)
+			m.mode = modeCreate
+			m.createModel = newCreateModel()
+			m = updateModel(t, m, key)
+			if m.mode != modeList {
+				t.Fatalf("create cancel mode = %v, want modeList", m.mode)
+			}
+		})
+	}
+}
+
 func TestConfiguredGlobalQuitWorksFromModalMode(t *testing.T) {
 	keyMap := mustKeyMap(t, map[string]map[string][]string{
 		"global": {"quit": {"z"}},
@@ -172,7 +230,7 @@ func TestConfiguredHelpBindingTogglesHelp(t *testing.T) {
 func TestRenderedHelpAndPromptsUseConfiguredBindings(t *testing.T) {
 	keyMap := mustKeyMap(t, map[string]map[string][]string{
 		"list":   {"up": {"w"}, "down": {"s"}, "create": {"c"}, "help": {"u"}},
-		"create": {"switch_field": {"ctrl+n"}, "submit": {"ctrl+s"}, "cancel": {"ctrl+x"}},
+		"create": {"submit": {"ctrl+s"}, "cancel": {"ctrl+x"}},
 		"rename": {"submit": {"ctrl+s"}, "cancel": {"ctrl+x"}},
 		"filter": {"apply": {"ctrl+s"}, "clear": {"ctrl+x"}},
 		"kill":   {"confirm": {"enter"}, "cancel": {"esc"}},
@@ -185,7 +243,7 @@ func TestRenderedHelpAndPromptsUseConfiguredBindings(t *testing.T) {
 			t.Errorf("help line %d width = %d, want %d", i, width, switcherWidth(120))
 		}
 	}
-	assertContainsAll(t, newCreateModel().View(keyMap), "ctrl+n", "ctrl+s", "ctrl+x")
+	assertContainsAll(t, newCreateModel().View(keyMap), "ctrl+s", "ctrl+x")
 	assertContainsAll(t, newRenameModel("old").View(keyMap), "ctrl+s", "ctrl+x")
 	assertContainsAll(t, newFilterModel("").View(keyMap), "ctrl+s", "ctrl+x")
 	assertContainsAll(t, newConfirmKillModel("old").View(keyMap), "enter", "esc")

@@ -153,11 +153,6 @@ func CreateSession(name string) error {
 	return runner.Run("tmux", "new-session", "-d", "-s", name)
 }
 
-// CreateSessionWithDir creates a new detached tmux session starting in the given directory.
-func CreateSessionWithDir(name, dir string) error {
-	return runner.Run("tmux", "new-session", "-d", "-s", name, "-c", dir)
-}
-
 // KillSession destroys the tmux session with the given name.
 func KillSession(name string) error {
 	return runner.Run("tmux", "kill-session", "-t", name)

@@ -114,7 +114,7 @@ Example:
       "quit": ["q", "esc"]
     },
     "create": {
-      "cancel": ["ctrl+x"]
+      "cancel": ["esc", "ctrl+x"]
     }
   }
 }
