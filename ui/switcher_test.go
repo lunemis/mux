@@ -26,6 +26,28 @@ func TestSwitcherInitialSelectionStartsOnPreviousSession(t *testing.T) {
 	}
 }
 
+func TestSwitcherInitialLoadRequestsPreviewOnce(t *testing.T) {
+	m := NewModel()
+
+	next, cmd := m.Update(sessionsLoadedMsg{sessions: []tmux.Session{}})
+	m = next.(Model)
+	if cmd != nil {
+		t.Fatal("empty initial session load should not request a preview")
+	}
+
+	sessions := []tmux.Session{{Name: "current", Current: true}, {Name: "previous"}}
+	next, cmd = m.Update(sessionsLoadedMsg{sessions: sessions})
+	m = next.(Model)
+	if cmd == nil {
+		t.Fatal("first selectable session load should request the selected session preview")
+	}
+
+	_, cmd = m.Update(sessionsLoadedMsg{sessions: sessions})
+	if cmd != nil {
+		t.Fatal("subsequent session refresh should not request a duplicate preview")
+	}
+}
+
 func TestSwitcherInitialSelectionHandlesSingleAndOutsideTmux(t *testing.T) {
 	tests := []struct {
 		name     string

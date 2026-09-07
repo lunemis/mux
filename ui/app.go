@@ -59,6 +59,7 @@ type Model struct {
 	focusSession   string           // session name to focus cursor on after next load
 	previewContent string           // cached capture-pane output
 	previewKey     previewKey       // (session, window, pane) the cache belongs to
+	previewPrimed  bool             // prevents session refreshes from duplicating the first capture
 	tokenUsage     *tmux.TokenUsage // cached token usage for current AI session
 	tokenSession   string           // session name the token cache belongs to
 }
@@ -198,6 +199,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focusSession = ""
 			} else if !m.restoreIdentity(selected) {
 				m.selectInitialSwitcherTarget()
+			}
+			if !m.previewPrimed {
+				if cmd := m.refreshCurrentPreview(); cmd != nil {
+					m.previewPrimed = true
+					return m, cmd
+				}
 			}
 		}
 		return m, nil
