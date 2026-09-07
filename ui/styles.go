@@ -3,8 +3,8 @@ package ui
 import (
 	"strings"
 
+	"github.com/aemonge/tmux-peeker/theme"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/lunemis/mux/theme"
 )
 
 var (

@@ -1,234 +1,190 @@
-# mux
+# tmux-peeker
 
-**A fast tmux session switcher with live previews.**
+> **Peek before you switch.**
 
-When work spans several tmux sessions, windows, and panes, finding the right terminal should not interrupt your flow. mux shows the selected target's live output and lets you switch in a keystroke.
+**tmux-peeker is a visual workspace switcher for tmux.** Preview sessions, windows, and panes before jumping into them.
 
-[한국어](README.ko.md)
+## Why tmux-peeker?
 
-![Go](https://img.shields.io/badge/Go-1.24.2+-00ADD8?style=flat&logo=go)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+A session name is rarely enough when several terminals look alike. tmux-peeker keeps the selected target's live output behind a compact picker, so you can recognize the workspace before switching.
 
-## The Problem
+- **Live previews** — see the selected session, window, or pane, refreshed every 500 ms
+- **Hierarchy-aware navigation** — drill from sessions into windows and panes
+- **Fast switching** — jump to the exact highlighted target with one key
+- **MRU ordering** — move between recent workspaces like an operating-system switcher
+- **Useful context** — see active commands and Git branch/worktree metadata
+- **Workspace management** — create, rename, kill, filter, and move windows between sessions
+- **Popup workflow** — open a borderless full-screen tmux popup from anywhere
+- **Configurable controls and themes** — keep the workflow comfortable without vendor-specific integrations
 
-tmux's built-in `choose-session` gives you names but not enough context to identify the terminal you need. You end up cycling through sessions, windows, and panes to find the right process.
-
-## How mux solves it
-
-### Fullscreen live preview — every window and pane
-See the selected target's terminal output across the full mux canvas before you switch. A compact picker floats in the center while the preview follows your selection. Press `l`, `Right`, or `Tab` to drill from sessions into windows and panes; use `h`, `Left`, or `Shift+Tab` to return.
-
-### Generic command display
-Session and pane rows show the command reported directly by tmux, without process-specific integrations.
-
-### Git branch & worktree display
-Each session shows its current git branch. Linked worktrees are visually distinguished so you can tell at a glance which sessions are working on isolated branches.
-
-### Popup overlay
-Press one key to summon mux on top of whatever you're doing. Pick a session and you're there.
-
-### Vim-style navigation
-`j`/`k` to browse, `/` to filter, `Enter` or `Backspace` to attach. No mouse needed.
-
-## Quick Start
-
-```bash
-# One-line interactive installer (recommended)
-curl -sSL https://raw.githubusercontent.com/lunemis/mux/main/install.sh | bash
-
-# Or install manually
-brew install lunemis/tap/mux   # or: go install github.com/lunemis/mux/cmd/mux@latest
-mux                             # launch the session manager
-```
-
-For the best experience, set up popup mode (opens mux as a floating overlay):
-
-```bash
-mux setup-keybind               # binds prefix + m and prints the reload command
-```
-
-Run the reload command it prints. Then press `Ctrl+b` followed by `m` anywhere in tmux to open mux.
-
-## Installation
-
-### Interactive installer (recommended)
-
-The installer guides you through binary installation and keybinding setup:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/lunemis/mux/main/install.sh | bash
-```
-
-### Homebrew
-
-```bash
-brew install lunemis/tap/mux
-```
+## Install
 
 ### From source
 
-```bash
-git clone https://github.com/lunemis/mux.git
-cd mux
-make install   # builds and installs to /usr/local/bin
-```
-
-### Go install
+Requires Go 1.24.2+ and tmux.
 
 ```bash
-go install github.com/lunemis/mux/cmd/mux@latest
+git clone https://github.com/aemonge/tmux-peeker.git
+cd tmux-peeker
+make test
+make local-install
 ```
 
-## Usage
+`make local-install` installs `tmux-peeker` into `~/.local/bin`. Ensure that directory is on `PATH`.
 
-### Basic
-
-Run `mux` to open the session manager. Use `j`/`k` to navigate, `Enter` or `Backspace` to attach, and `q` to quit.
-
-A one-row contextual title (`tmux session picker`, `tmux window picker`, or `tmux pane picker`) sits above the selected target's **live preview**, updated every 500ms. The preview fills every remaining row edge-to-edge with no outer border or separator. A compact picker floats in the center and shows one hierarchy level at a time. The preview remains anchored at the bottom-left so prompts and status rows stay visible. Press `?` to toggle contextual key help.
-
-Sessions behave like an OS window switcher. Inside tmux, the current invoking session appears first, the previously used session appears second and is initially highlighted, and older sessions follow in MRU order. Pressing `Enter` or `Backspace` immediately switches to the highlighted previous session; reopening mux highlights the session you just left. Background output does not reorder the list. Outside tmux, the list remains MRU-first. Never-visited sessions fall back to newest creation time, then name.
-
-mux-managed popup bindings created before this switcher behavior must be regenerated once so they pass the originating session into the popup. Run the reload command printed by `setup-keybind`:
+### Go
 
 ```bash
-mux setup-keybind
+go install github.com/aemonge/tmux-peeker/cmd/tmux-peeker@latest
 ```
 
-If you maintain a custom popup binding, make it invoke `mux popup` with the originating session instead of launching `mux` directly. For example, this global binding uses `Ctrl+Backspace`:
+### Installer
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aemonge/tmux-peeker/main/install.sh | bash
+```
+
+The remote commands become available after the GitHub repository is published under the `tmux-peeker` name. No Homebrew tap is currently maintained.
+
+## Quick start
+
+```bash
+tmux-peeker
+```
+
+Use `j`/`k` or the arrow keys to move, `Enter` or `Backspace` to attach, and `q` to quit.
+
+### Navigate the hierarchy
+
+| Action | Default keys |
+|---|---|
+| Move | `j` / `k`, `↓` / `↑` |
+| First / last | `g` / `G` |
+| Drill into session or window | `l`, `→`, `Tab` |
+| Return to parent | `h`, `←`, `Shift+Tab` |
+| Attach selected target | `Enter`, `Backspace` |
+| Create / rename / kill | `n` / `r` / `x` |
+| Move selected window | `m` |
+| Filter / clear filter | `/` / `Esc` |
+| Help | `?` |
+| Quit | `q` |
+
+Inside tmux, the invoking session stays first and the previously used session is highlighted next. Older sessions follow in MRU order. Background activity does not reorder them. Selecting a window or pane focuses that exact target before attaching.
+
+## Popup mode
+
+Let tmux-peeker install its owned popup binding:
+
+```bash
+tmux-peeker setup-keybind       # prefix + m
+tmux-peeker setup-keybind Space # choose another tmux key
+```
+
+Run the reload command it prints. You can also open the popup directly:
+
+```bash
+tmux-peeker popup
+```
+
+A custom global binding must preserve the invoking session:
 
 ```tmux
-bind-key -n C-BSpace run-shell 'MUX_ORIGIN_SESSION=#{q:session_name} "/absolute/path/to/mux" popup'
+bind-key -n C-BSpace run-shell 'TMUX_PEEKER_ORIGIN_SESSION=#{q:session_name} "/absolute/path/to/tmux-peeker" popup'
 ```
 
-### Themes
+Generated lines carry the marker `# tmux-peeker popup keybinding`. Setup only replaces lines with that marker; bindings owned by `mux` or other tools remain untouched.
 
-mux includes two built-in color themes:
+## Configuration
 
-- `default` — the original dark-terminal palette
-- `solarized-gruvbox` — a light theme inspired by Solarized contrast and Gruvbox Light Soft colors
+The config file is:
 
-Select a theme with `--theme`:
+- `$XDG_CONFIG_HOME/tmux-peeker/config.json`, or
+- `~/.config/tmux-peeker/config.json` when `XDG_CONFIG_HOME` is unset
 
-```bash
-mux --theme solarized-gruvbox
-mux --theme solarized-gruvbox popup
-```
-
-Persist the selection in `$XDG_CONFIG_HOME/mux/config.json` (or `~/.config/mux/config.json` when `XDG_CONFIG_HOME` is unset):
-
-```bash
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/mux"
-cat > "${XDG_CONFIG_HOME:-$HOME/.config}/mux/config.json" <<'EOF'
-{
-  "theme": "solarized-gruvbox"
-}
-EOF
-```
-
-Or set it for the current environment:
-
-```bash
-export MUX_THEME=solarized-gruvbox
-mux
-```
-
-Theme precedence is `--theme`, then `MUX_THEME`, then the XDG config, then `default`.
-
-Theme palettes live in [`theme/*.json`](theme/). To add a built-in theme, copy an existing file, give it a unique `name`, update its semantic UI colors, then rebuild mux. Set `colors.background` to `"NONE"` to preserve your terminal's background. The switcher selector's titled top edge uses `colors.separator` (`#2563EB` blue in the default theme) independently from its remaining `colors.border` edges. Theme files are embedded into the binary at build time.
-
-### Custom keybindings
-
-Every mux action can be rebound in the same XDG `config.json`. Overrides are partial: an action you omit keeps its default keys, while an action you include replaces its defaults. Each action accepts one or more keys.
+Example:
 
 ```json
 {
   "theme": "solarized-gruvbox",
   "keybindings": {
-    "global": {
-      "quit": ["ctrl+q"]
-    },
     "list": {
-      "up": ["w", "up"],
-      "down": ["s", "down"],
-      "create": ["c"]
+      "attach": ["enter", "space"],
+      "up": ["k"],
+      "down": ["j"],
+      "quit": ["q", "esc"]
     },
     "create": {
-      "submit": ["ctrl+s"],
       "cancel": ["ctrl+x"]
     }
   }
 }
 ```
 
-Keys use Bubble Tea's case-sensitive names, such as `enter`, `backspace`, `esc`, `tab`, `shift+tab`, `up`, `right`, `ctrl+c`, or a literal character. mux rejects unknown contexts/actions, empty bindings, and keys assigned to conflicting actions in the same mode. The contextual help card and prompts show the active bindings.
+Overrides are partial: omitted actions retain their defaults, while a configured action replaces its default key list. Use Bubble Tea's case-sensitive names such as `enter`, `backspace`, `space`, `esc`, `tab`, `shift+tab`, `up`, `right`, and `ctrl+c`, or use a literal character. `space` is the visible alias for the Space key; a literal `" "` remains compatible. Conflicting keys are rejected.
 
-| Context | Action | Default keys |
-|---|---|---|
-| `global` | `quit` | `ctrl+c` |
-| `list` | `up` / `down` | `up`, `k` / `down`, `j` |
-| `list` | `first` / `last` | `g` / `G` |
-| `list` | `expand` / `collapse` | `tab`, `right`, `l` / `shift+tab`, `left`, `h` |
-| `list` | `attach` | `enter`, `backspace` |
-| `list` | `help` | `?` |
-| `list` | `create` / `rename` / `kill` | `n` / `r` / `x` |
-| `list` | `move_window` | `m` |
-| `list` | `filter` / `clear_filter` | `/` / `esc` |
-| `list` | `quit` | `q` |
-| `create` | `switch_field` | `tab`, `shift+tab` |
-| `create` | `submit` / `cancel` | `enter` / `esc` |
-| `rename` | `submit` / `cancel` | `enter` / `esc` |
-| `filter` | `apply` / `clear` | `enter` / `esc` |
-| `kill` | `confirm` / `cancel` | `y`, `Y` / `any` |
-| `move` | `up` / `down` | `up`, `k` / `down`, `j` |
-| `move` | `confirm` / `cancel` | `enter` / `esc` |
+Run `?` inside the picker to see active bindings. `any` is reserved for `kill.cancel` and means that any key cancels the confirmation.
 
-`any` is a fallback reserved for `kill.cancel`; replace it with explicit keys such as `["n", "esc"]` if only those keys should cancel. These settings control keys inside the mux TUI. The external tmux popup binding remains configured separately with `mux setup-keybind`.
+### Themes
 
-To move a window, drill into a session, select a window, and press `m`. Choose another session and press `Enter`; `Esc` cancels. mux preserves the destination's active window and uses its next free window index. Moving a session's final window is allowed; the chooser warns that tmux will remove the now-empty source session and may detach clients attached to it.
+Built-in themes:
 
-### Popup mode (recommended)
+- `default`
+- `solarized-gruvbox`
 
-Open mux as a borderless fullscreen task switcher inside tmux, regardless of the program running in the foreground.
+Select one for a run:
 
 ```bash
-# Set up the keybinding (one-time)
-mux setup-keybind          # prefix + m (default)
-mux setup-keybind Space    # or use a different key
+tmux-peeker --theme solarized-gruvbox
+tmux-peeker --theme solarized-gruvbox popup
 ```
 
-Run the reload command printed by `setup-keybind`. You can also open the popup manually with `mux popup`.
+Or set:
 
-> **Note:** Popup mode requires tmux 3.2+
+```bash
+export TMUX_PEEKER_THEME=solarized-gruvbox
+```
 
-### Default keybindings
+Theme precedence is `--theme`, then `TMUX_PEEKER_THEME`, then the config file, then `default`. Palettes live in [`theme/*.json`](theme/) and are embedded at build time. Set `colors.background` to `"NONE"` to preserve the terminal canvas background.
 
-These defaults can be replaced through [custom keybindings](#custom-keybindings).
+## Migrating from `mux`
 
-| Key | Action |
-|---|---|
-| `j` / `k` | Move down / up |
-| `g` / `G` | Jump to first / last |
-| `Tab` / `→` / `l` | Drill into session → windows → panes |
-| `Shift+Tab` / `←` / `h` | Return to the parent level |
-| `Enter` / `Backspace` | Attach (focuses the selected window/pane) |
-| `?` | Toggle contextual help |
-| `n` | Create new session |
-| `r` | Rename session |
-| `x` | Delete session (with confirmation) |
-| `m` | Move the selected window to another session |
-| `/` | Filter sessions by name or path |
-| `Esc` | Clear filter / cancel |
-| `q` | Quit |
+tmux-peeker owns a separate binary, config directory, environment namespace, and tmux marker. It never reads, moves, deletes, or rewrites upstream `mux` state.
 
-## Requirements
+Copy your selected settings explicitly:
 
-- tmux (popup mode requires 3.2+)
-- Linux or macOS
+```bash
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tmux-peeker"
+cp "${XDG_CONFIG_HOME:-$HOME/.config}/mux/config.json" \
+  "${XDG_CONFIG_HOME:-$HOME/.config}/tmux-peeker/config.json"
+```
 
-## Contributing
+Then replace any `MUX_THEME` usage with `TMUX_PEEKER_THEME` and run `tmux-peeker setup-keybind`. Existing `mux` binding text remains untouched. Because tmux activates only one command for a given key in a key table, choose a different key if both tools must remain usable; otherwise inspect your tmux configuration and remove the upstream binding manually when you no longer want it.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+There is intentionally no permanent `mux` executable alias.
+
+## Development
+
+```bash
+make test
+make build
+make local-install
+```
+
+Additional checks used for releases:
+
+```bash
+go vet ./...
+go test -race ./...
+shellcheck install.sh
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for project conventions.
+
+## Independent-fork provenance
+
+tmux-peeker is an independent fork derived from [`lunemis/mux`](https://github.com/lunemis/mux). It preserves the upstream Git history and MIT license while pursuing a vendor-neutral tmux workspace-switching product. It is not affiliated with or endorsed by the upstream project.
+
+See [NOTICE](NOTICE) for attribution details.
 
 ## License
 

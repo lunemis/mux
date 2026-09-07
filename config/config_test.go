@@ -15,7 +15,7 @@ func TestPathUsesXDGConfigHome(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Path() error = %v", err)
 	}
-	want := filepath.Join(xdg, "mux", "config.json")
+	want := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if got != want {
 		t.Errorf("Path() = %q, want %q", got, want)
 	}
@@ -30,7 +30,7 @@ func TestPathFallsBackToHomeConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Path() error = %v", err)
 	}
-	want := filepath.Join(home, ".config", "mux", "config.json")
+	want := filepath.Join(home, ".config", "tmux-peeker", "config.json")
 	if got != want {
 		t.Errorf("Path() = %q, want %q", got, want)
 	}
@@ -39,7 +39,7 @@ func TestPathFallsBackToHomeConfig(t *testing.T) {
 func TestLoadReadsTheme(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	path := filepath.Join(xdg, "mux", "config.json")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestLoadReadsTheme(t *testing.T) {
 func TestLoadReadsKeybindings(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	path := filepath.Join(xdg, "mux", "config.json")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -89,8 +89,16 @@ func TestLoadReadsKeybindings(t *testing.T) {
 	}
 }
 
-func TestLoadAllowsMissingConfig(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+func TestLoadIgnoresUpstreamConfig(t *testing.T) {
+	xdg := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", xdg)
+	upstream := filepath.Join(xdg, "mux", "config.json")
+	if err := os.MkdirAll(filepath.Dir(upstream), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(upstream, []byte(`{"theme":"solarized-gruvbox"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := Load()
 	if err != nil {
@@ -104,7 +112,7 @@ func TestLoadAllowsMissingConfig(t *testing.T) {
 func TestLoadRejectsMalformedJSON(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	path := filepath.Join(xdg, "mux", "config.json")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -60,7 +60,7 @@ func assertOutputCalls(t *testing.T, m *mockRunner, want []string) {
 func withMock(t *testing.T, fn func(m *mockRunner)) {
 	t.Helper()
 	t.Setenv("TMUX_PANE", "")
-	t.Setenv("MUX_ORIGIN_SESSION", "")
+	t.Setenv(originSessionEnv, "")
 	m := newMockRunner()
 	old := runner
 	SetRunner(m)
@@ -109,7 +109,7 @@ func TestListSessionsUsesOnlyTmuxData(t *testing.T) {
 
 func TestCurrentSessionNamePrefersPopupOrigin(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
-		t.Setenv("MUX_ORIGIN_SESSION", "origin")
+		t.Setenv(originSessionEnv, "origin")
 		t.Setenv("TMUX_PANE", "%popup")
 
 		got := currentSessionName()

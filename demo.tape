@@ -1,4 +1,4 @@
-# VHS demo tape for mux
+# VHS demo tape for tmux-peeker
 # Install VHS: https://github.com/charmbracelet/vhs
 # Run: vhs demo.tape
 
@@ -9,7 +9,7 @@ Set Width 1200
 Set Height 600
 Set Theme "Catppuccin Mocha"
 
-Type "mux"
+Type "tmux-peeker"
 Enter
 Sleep 2s
 

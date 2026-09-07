@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: 버그를 제보합니다
+about: Report a reproducible problem
 title: "[Bug] "
 labels: bug
 ---
@@ -8,21 +8,21 @@ labels: bug
 ## Environment
 - OS: <!-- e.g. macOS 15.0, Ubuntu 24.04 -->
 - tmux version: <!-- tmux -V -->
-- mux version: <!-- mux --version -->
+- tmux-peeker version: <!-- tmux-peeker --version -->
 
 ## Description
-<!-- 무엇이 잘못되었나요? -->
+<!-- What went wrong? -->
 
 ## Steps to reproduce
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected behavior
-<!-- 어떻게 동작해야 하나요? -->
+<!-- What should have happened? -->
 
 ## Actual behavior
-<!-- 실제로 어떻게 동작했나요? -->
+<!-- What happened instead? -->
 
 ## Screenshots
-<!-- 가능하면 스크린샷을 첨부해주세요 -->
+<!-- Add screenshots when they help explain the problem. -->

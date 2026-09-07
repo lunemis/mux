@@ -71,12 +71,12 @@ var defaultBindings = map[string]map[string][]string{
 	},
 }
 
-// KeyMap contains the active keybindings for every mux interaction context.
+// KeyMap contains the active keybindings for every tmux-peeker interaction context.
 type KeyMap struct {
 	bindings map[string]map[string][]string
 }
 
-// DefaultKeyMap returns mux's built-in keybindings.
+// DefaultKeyMap returns tmux-peeker's built-in keybindings.
 func DefaultKeyMap() KeyMap {
 	return KeyMap{bindings: cloneBindings(defaultBindings)}
 }
@@ -122,8 +122,9 @@ func (k KeyMap) Keys(context, action string) []string {
 
 // Matches reports whether a Bubble Tea key string triggers an action.
 func (k KeyMap) Matches(context, action, pressed string) bool {
+	pressed = canonicalKey(pressed)
 	for _, configured := range k.bindings[context][action] {
-		if configured == "any" || configured == pressed {
+		if configured == "any" || canonicalKey(configured) == pressed {
 			return true
 		}
 	}
@@ -132,7 +133,26 @@ func (k KeyMap) Matches(context, action, pressed string) bool {
 
 // Help formats an action's active keys for display.
 func (k KeyMap) Help(context, action string) string {
-	return strings.Join(k.bindings[context][action], "/")
+	keys := k.bindings[context][action]
+	visible := make([]string, len(keys))
+	for i, key := range keys {
+		visible[i] = visibleKey(key)
+	}
+	return strings.Join(visible, "/")
+}
+
+func canonicalKey(key string) string {
+	if key == "space" {
+		return " "
+	}
+	return key
+}
+
+func visibleKey(key string) string {
+	if canonicalKey(key) == " " {
+		return "space"
+	}
+	return key
 }
 
 func cloneBindings(source map[string]map[string][]string) map[string]map[string][]string {
@@ -171,10 +191,11 @@ func conflictWithinContext(bindings map[string]map[string][]string, context stri
 			if key == "any" {
 				continue
 			}
-			if previous, exists := assigned[key]; exists {
-				return fmt.Errorf("key %q is assigned to both %s and %s", key, previous, owner)
+			identity := canonicalKey(key)
+			if previous, exists := assigned[identity]; exists {
+				return fmt.Errorf("key %q is assigned to both %s and %s", visibleKey(identity), previous, owner)
 			}
-			assigned[key] = owner
+			assigned[identity] = owner
 		}
 	}
 	return nil

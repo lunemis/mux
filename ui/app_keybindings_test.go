@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/lunemis/mux/tmux"
 )
 
 func TestConfiguredListBindingsDriveNavigationAndModes(t *testing.T) {

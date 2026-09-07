@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/lunemis/mux/tmux"
 )
 
 func TestLayoutDimensions(t *testing.T) {
@@ -79,7 +79,7 @@ func TestOverlayCenteredPreservesFullscreenCanvas(t *testing.T) {
 func TestOverlayCenteredHandlesANSIAndWideCharacters(t *testing.T) {
 	const width, height = 18, 5
 	background := "界界界界界界界界界\n" + strings.Repeat("x\n", height-2) + strings.Repeat("y", width)
-	foreground := titleStyle.Render("╭─ ◆ ─╮\n│ mux │\n╰─────╯")
+	foreground := titleStyle.Render("╭─ ◆ ─╮\n│ peek │\n╰─────╯")
 
 	output := overlayCentered(background, foreground, width, height)
 	for i, line := range strings.Split(output, "\n") {
@@ -87,7 +87,7 @@ func TestOverlayCenteredHandlesANSIAndWideCharacters(t *testing.T) {
 			t.Errorf("line %d width = %d, want %d", i, got, width)
 		}
 	}
-	if !strings.Contains(ansi.Strip(output), "mux") {
+	if !strings.Contains(ansi.Strip(output), "peek") {
 		t.Error("styled overlay content is missing")
 	}
 }

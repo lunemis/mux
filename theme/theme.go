@@ -1,4 +1,4 @@
-// Package theme loads the color palette used by mux.
+// Package theme loads the color palette used by tmux-peeker.
 package theme
 
 import (
@@ -38,7 +38,7 @@ var themeFiles embed.FS
 
 var builtIns = mustLoadBuiltIns()
 
-// Default is the built-in mux theme used when no alternative is selected.
+// Default is the built-in tmux-peeker theme used when no alternative is selected.
 var Default = builtIns["default"]
 
 // Get returns a built-in theme by name.

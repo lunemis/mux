@@ -18,7 +18,7 @@ const (
 		"#{pane_current_path}" + sessionFieldSeparator +
 		"#{session_last_attached}" + sessionFieldSeparator +
 		"#{pane_current_command}"
-	originSessionEnv = "MUX_ORIGIN_SESSION"
+	originSessionEnv = "TMUX_PEEKER_ORIGIN_SESSION"
 )
 
 // ListSessions returns sessions in OS-switcher order: current first, followed by

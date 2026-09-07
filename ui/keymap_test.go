@@ -4,9 +4,11 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-func TestDefaultKeyMapContainsEveryMuxAction(t *testing.T) {
+func TestDefaultKeyMapContainsEveryTmuxPeekerAction(t *testing.T) {
 	want := map[string]map[string][]string{
 		"global": {
 			"quit": {"ctrl+c"},
@@ -161,6 +163,36 @@ func TestKeyMapAnyIsAConfigurableFallback(t *testing.T) {
 	}
 	if !custom.Matches("kill", "cancel", "n") || custom.Matches("kill", "cancel", "x") {
 		t.Error("custom kill.cancel should replace the any-key fallback")
+	}
+}
+
+func TestKeyMapSpaceAliasMatchesBubbleTeaSpace(t *testing.T) {
+	pressed := tea.KeyMsg{Type: tea.KeySpace, Runes: []rune{' '}}.String()
+	for _, configured := range []string{"space", " "} {
+		keyMap, err := NewKeyMap(map[string]map[string][]string{
+			"list": {"attach": {configured}},
+		})
+		if err != nil {
+			t.Fatalf("NewKeyMap(%q) error = %v", configured, err)
+		}
+		if !keyMap.Matches("list", "attach", pressed) {
+			t.Errorf("configured %q does not match Bubble Tea Space %q", configured, pressed)
+		}
+		if got := keyMap.Help("list", "attach"); got != "space" {
+			t.Errorf("Help(list.attach) = %q, want space", got)
+		}
+	}
+}
+
+func TestNewKeyMapRejectsSpaceAliasConflict(t *testing.T) {
+	_, err := NewKeyMap(map[string]map[string][]string{
+		"list": {
+			"attach": {"space"},
+			"help":   {" "},
+		},
+	})
+	if err == nil || !strings.Contains(err.Error(), `key "space" is assigned to both list.attach and list.help`) {
+		t.Fatalf("NewKeyMap() error = %v, want visible space conflict", err)
 	}
 }
 

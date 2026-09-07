@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="lunemis/mux"
-BINARY="mux"
+REPO="aemonge/tmux-peeker"
+BINARY="tmux-peeker"
 INSTALL_DIR="/usr/local/bin"
 # Parse flags
 for arg in "$@"; do
@@ -142,36 +142,11 @@ is_oh_my_tmux() {
     [ "$first" = "# : << 'EOF'" ]
 }
 
-# strip_mux_lines removes mux-owned bind lines from a config file:
-#   - lines tagged with the marker `# mux popup keybinding`
-#   - legacy untagged lines from older install.sh fallbacks: any line
-#     containing `display-popup -E -w 80% -h 80% "mux"`
-# Used to clean up the main .tmux.conf when routing to .tmux.conf.local.
-# Writes through symlinks (oh-my-tmux's ~/.tmux.conf is normally a symlink to
-# ~/.tmux/.tmux.conf — `mv` would replace the symlink, leaving the real file
-# corrupt and breaking `~/.tmux/install.sh` reinstalls).
-strip_mux_lines() {
-    local target="$1"
-    [ -f "$target" ] || return 0
-    local marker='# mux popup keybinding'
-    local legacy='display-popup -E -w 80% -h 80% "mux"'
-    local tmp
-    tmp="$(mktemp)"
-    grep -vF -e "$marker" -e "$legacy" "$target" > "$tmp" || true
-    if cmp -s "$target" "$tmp"; then
-        rm -f "$tmp"
-        return 1
-    fi
-    cat "$tmp" > "$target"
-    rm -f "$tmp"
-    return 0
-}
-
 setup_keybind() {
     info "Setting up tmux keybinding..."
     if command -v "$BINARY" &>/dev/null; then
         "$BINARY" setup-keybind m
-        ok "Keybinding added: prefix + m → mux popup"
+        ok "Keybinding added: prefix + m → tmux-peeker popup"
     else
         local conf=""
         local xdg="${XDG_CONFIG_HOME:-}"
@@ -182,8 +157,8 @@ setup_keybind() {
         else
             conf="${HOME}/.tmux.conf"
         fi
-        local line="bind-key m run-shell 'MUX_ORIGIN_SESSION=#{q:session_name} \"mux\" popup'"
-        local marker='# mux popup keybinding'
+        local line="bind-key m run-shell 'TMUX_PEEKER_ORIGIN_SESSION=#{q:session_name} \"tmux-peeker\" popup'"
+        local marker='# tmux-peeker popup keybinding'
 
         # Route to .tmux.conf.local for oh-my-tmux users — the main conf gets
         # processed via `cut -c3- | sh`, and any non-`# `-prefixed line we add
@@ -209,11 +184,6 @@ setup_keybind() {
                     printf '\n%s\n' "$tagged" >> "$local_conf"
                 fi
                 ok "Detected oh-my-tmux. Keybinding added to ${local_conf}"
-                # Best-effort cleanup of any prior corrupt entry in the main
-                # conf — older mux versions appended unmarked binds there.
-                if strip_mux_lines "$conf"; then
-                    ok "Removed prior mux entry from ${conf}"
-                fi
                 if [ -n "${TMUX:-}" ]; then
                     tmux source-file "$local_conf" 2>/dev/null && ok "tmux config reloaded"
                 fi
@@ -236,7 +206,7 @@ setup_keybind() {
 # --- Main ---
 
 echo ""
-echo "  ⚡ mux installer"
+echo "  ⚡ tmux-peeker installer"
 echo ""
 
 # Step 1: Install binary
@@ -255,5 +225,5 @@ else
 fi
 
 echo ""
-echo "  Done! Run 'mux' in tmux to start."
+echo "  Done! Run 'tmux-peeker' in tmux to start."
 echo ""

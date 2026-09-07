@@ -7,11 +7,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/lunemis/mux/config"
-	"github.com/lunemis/mux/theme"
-	"github.com/lunemis/mux/tmux"
-	"github.com/lunemis/mux/ui"
+	"github.com/aemonge/tmux-peeker/config"
+	"github.com/aemonge/tmux-peeker/theme"
+	"github.com/aemonge/tmux-peeker/tmux"
+	"github.com/aemonge/tmux-peeker/ui"
 )
+
+const themeEnv = "TMUX_PEEKER_THEME"
 
 var version = "dev"
 
@@ -19,7 +21,7 @@ func main() {
 	settings, configErr := config.Load()
 	themeName := configuredThemeNameFrom(settings)
 	configError := func(cmd *cobra.Command) error {
-		themeOverride := cmd.Flags().Changed("theme") || os.Getenv("MUX_THEME") != ""
+		themeOverride := cmd.Flags().Changed("theme") || os.Getenv(themeEnv) != ""
 		if configErr != nil && !themeOverride {
 			return configErr
 		}
@@ -27,8 +29,8 @@ func main() {
 	}
 
 	rootCmd := &cobra.Command{
-		Use:     "mux",
-		Short:   "TUI tmux session manager",
+		Use:     "tmux-peeker",
+		Short:   "Peek before you switch",
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := configError(cmd); err != nil {
@@ -43,13 +45,13 @@ func main() {
 		// Suppress cobra's default completion and help subcommands
 		CompletionOptions: cobra.CompletionOptions{DisableDefaultCmd: true},
 	}
-	rootCmd.SetVersionTemplate("mux {{.Version}}\n")
+	rootCmd.SetVersionTemplate("tmux-peeker {{.Version}}\n")
 	rootCmd.PersistentFlags().StringVar(&themeName, "theme", themeName,
 		fmt.Sprintf("Color theme (%s)", joinWith(theme.Names(), ", ")))
 
 	popupCmd := &cobra.Command{
 		Use:   "popup",
-		Short: "Open mux as a tmux popup overlay",
+		Short: "Open tmux-peeker as a tmux popup overlay",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := configError(cmd); err != nil {
 				return err
@@ -96,7 +98,7 @@ func joinWith(parts []string, sep string) string {
 }
 
 func configuredThemeName() (string, error) {
-	if name := os.Getenv("MUX_THEME"); name != "" {
+	if name := os.Getenv(themeEnv); name != "" {
 		return name, nil
 	}
 	settings, err := config.Load()
@@ -107,7 +109,7 @@ func configuredThemeName() (string, error) {
 }
 
 func configuredThemeNameFrom(settings config.Config) string {
-	if name := os.Getenv("MUX_THEME"); name != "" {
+	if name := os.Getenv(themeEnv); name != "" {
 		return name
 	}
 	if settings.Theme != "" {

@@ -20,7 +20,7 @@ jobs:
         run: go test ./...
 
       - name: Build
-        run: go build ./cmd/mux
+        run: go build ./cmd/tmux-peeker
 
       - name: Cross-compile (Linux arm64)
-        run: GOARCH=arm64 go build ./cmd/mux
+        run: GOARCH=arm64 go build ./cmd/tmux-peeker

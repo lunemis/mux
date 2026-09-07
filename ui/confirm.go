@@ -3,8 +3,8 @@ package ui
 import (
 	"fmt"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lunemis/mux/tmux"
 )
 
 type confirmKillModel struct {

@@ -4,9 +4,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/lunemis/mux/tmux"
 )
 
 func TestSwitcherInitialSelectionStartsOnPreviousSession(t *testing.T) {
@@ -202,6 +202,28 @@ func TestSwitcherAcceptKeysAttachSelectedPane(t *testing.T) {
 				t.Fatalf("attach target = %#v, want exact selected pane", got.attachTarget)
 			}
 		})
+	}
+}
+
+func TestConfiguredSpaceAttachesSelectedSession(t *testing.T) {
+	keyMap, err := NewKeyMap(map[string]map[string][]string{
+		"list": {"attach": {"enter", "space"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := NewModel()
+	m.keyMap = keyMap
+	m.sessions = []tmux.Session{{Name: "work"}}
+	m.applyFilter()
+
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeySpace, Runes: []rune{' '}})
+	got := next.(Model)
+	if cmd == nil {
+		t.Fatal("configured Space should quit the switcher")
+	}
+	if got.attachTarget.session != "work" {
+		t.Fatalf("attach target = %#v, want work session", got.attachTarget)
 	}
 }
 

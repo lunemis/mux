@@ -6,8 +6,8 @@ before:
     - go test ./...
 
 builds:
-  - main: ./cmd/mux
-    binary: mux
+  - main: ./cmd/tmux-peeker
+    binary: tmux-peeker
     env:
       - CGO_ENABLED=0
     goos:
@@ -33,15 +33,3 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
-
-brews:
-  - repository:
-      owner: lunemis
-      name: homebrew-tap
-    homepage: "https://github.com/lunemis/mux"
-    description: "TUI tool for browsing and managing tmux sessions"
-    license: "MIT"
-    install: |
-      bin.install "mux"
-    test: |
-      system "#{bin}/mux", "--help"

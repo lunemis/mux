@@ -1,9 +1,9 @@
 package ui
 
 import (
+	"github.com/aemonge/tmux-peeker/tmux"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lunemis/mux/tmux"
 )
 
 type renameModel struct {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/lunemis/mux/tmux"
 )
 
 type moveWindowModel struct {

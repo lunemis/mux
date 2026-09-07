@@ -10,8 +10,8 @@ import (
 func TestConfiguredThemeNameReadsXDGConfig(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	t.Setenv("MUX_THEME", "")
-	path := filepath.Join(xdg, "mux", "config.json")
+	t.Setenv(themeEnv, "")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +31,7 @@ func TestConfiguredThemeNameReadsXDGConfig(t *testing.T) {
 func TestConfiguredKeyMapReadsXDGConfig(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	path := filepath.Join(xdg, "mux", "config.json")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -54,14 +54,28 @@ func TestConfiguredKeyMapReadsXDGConfig(t *testing.T) {
 func TestConfiguredThemeNameEnvironmentOverridesConfig(t *testing.T) {
 	xdg := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", xdg)
-	t.Setenv("MUX_THEME", "default")
-	path := filepath.Join(xdg, "mux", "config.json")
+	t.Setenv(themeEnv, "default")
+	path := filepath.Join(xdg, "tmux-peeker", "config.json")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(path, []byte(`{"theme":"solarized-gruvbox"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
+	got, err := configuredThemeName()
+	if err != nil {
+		t.Fatalf("configuredThemeName() error = %v", err)
+	}
+	if got != "default" {
+		t.Errorf("configuredThemeName() = %q, want default", got)
+	}
+}
+
+func TestConfiguredThemeNameIgnoresUpstreamEnvironment(t *testing.T) {
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv(themeEnv, "")
+	t.Setenv("MUX_THEME", "solarized-gruvbox")
 
 	got, err := configuredThemeName()
 	if err != nil {

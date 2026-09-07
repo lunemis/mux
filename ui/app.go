@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/lunemis/mux/tmux"
 )
 
 const (
@@ -120,7 +120,7 @@ func refreshPreview(key previewKey) tea.Cmd {
 	}
 }
 
-// NewModel returns a new Model with mux's default keybindings.
+// NewModel returns a new Model with tmux-peeker's default keybindings.
 func NewModel() Model {
 	return NewModelWithKeyMap(DefaultKeyMap())
 }
@@ -567,7 +567,7 @@ func (m Model) View() string {
 
 func (m Model) previewBackground() string {
 	if m.height < minimumSwitcherHeight || m.width < 20 {
-		return fixedBox(errorStyle.Render("Terminal too small for mux"), m.width, m.height)
+		return fixedBox(errorStyle.Render("Terminal too small for tmux-peeker"), m.width, m.height)
 	}
 
 	currentItem := m.currentItem()

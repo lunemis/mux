@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/lunemis/mux/tmux"
+	"github.com/aemonge/tmux-peeker/tmux"
 )
 
 func TestMoveBindingOpensDestinationChooserForWindowRowOnly(t *testing.T) {

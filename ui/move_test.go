@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lunemis/mux/tmux"
 )
 
 func TestNewMoveWindowModelOffersOtherSessions(t *testing.T) {

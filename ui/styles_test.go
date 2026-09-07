@@ -3,7 +3,7 @@ package ui
 import (
 	"testing"
 
-	"github.com/lunemis/mux/theme"
+	"github.com/aemonge/tmux-peeker/theme"
 )
 
 func TestUseThemeAppliesSemanticPalette(t *testing.T) {

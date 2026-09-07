@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aemonge/tmux-peeker/tmux"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/lunemis/mux/tmux"
 )
 
 const (

@@ -1,12 +1,12 @@
-# Contributing to mux
+# Contributing to tmux-peeker
 
 Thanks for your interest in contributing! Here's how to get started.
 
 ## Development setup
 
 ```bash
-git clone https://github.com/lunemis/mux.git
-cd mux
+git clone https://github.com/aemonge/tmux-peeker.git
+cd tmux-peeker
 make build
 ```
 
@@ -24,7 +24,7 @@ make test
 ### Building
 
 ```bash
-make build    # builds ./mux binary
+make build    # builds ./tmux-peeker binary
 make install  # installs to /usr/local/bin
 ```
 

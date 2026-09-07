@@ -1,15 +1,15 @@
 ---
 name: Feature Request
-about: 새로운 기능을 제안합니다
+about: Suggest an improvement
 title: "[Feature] "
 labels: enhancement
 ---
 
 ## Problem
-<!-- 어떤 문제를 해결하고 싶나요? -->
+<!-- What problem should this solve? -->
 
 ## Proposed solution
-<!-- 어떤 기능을 원하나요? -->
+<!-- What behavior would you like? -->
 
 ## Alternatives considered
-<!-- 다른 방법은 고려해봤나요? -->
+<!-- What other approaches did you consider? -->
