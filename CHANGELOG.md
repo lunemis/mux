@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scripts/test-fixture.sh` for spinning up test sessions with multiple windows/panes
 
 ### Changed
+- Selector and help cards now use an opaque semantic `surface` color across titles, borders, normal rows, padding, and blank cells while preserving the selected-row and terminal-canvas backgrounds.
 - Renamed the independent fork to `tmux-peeker`, including its binary, Go module, config directory, environment variables, tmux marker, installer, release metadata, and documentation. The new identity intentionally provides no `mux` executable alias or automatic upstream-state migration.
 - Session ordering now behaves like an OS switcher: the invoking session is displayed first, the previous session is displayed second and initially highlighted, and older sessions follow in MRU order; background output no longer changes recency.
 - Popup launch now uses a borderless `100% × 100%` canvas and generated keybindings preserve the invoking tmux session for switcher ordering.

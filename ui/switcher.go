@@ -246,6 +246,17 @@ func selectorTitle(current *listItem, count int, filter string) string {
 	return title
 }
 
+func surfaceSpaces(count int) string {
+	return lipgloss.NewStyle().
+		Background(colorSurface).
+		Render(strings.Repeat(" ", max(0, count)))
+}
+
+func surfacePadOrTruncate(value string, width int) string {
+	value = ansi.Truncate(value, width, "")
+	return value + surfaceSpaces(width-ansi.StringWidth(value))
+}
+
 func renderSwitcherSelector(m *Model) string {
 	items, cursor := m.selectorItems()
 	width := switcherWidth(m.width)
@@ -262,9 +273,12 @@ func renderSwitcherSelector(m *Model) string {
 			}
 		}
 		for i := 0; i < itemRows; i++ {
-			lines[i] = strings.Repeat(" ", innerWidth)
+			lines[i] = surfaceSpaces(innerWidth)
 		}
-		lines[itemRows/2] = truncateAndCenter(message, innerWidth)
+		lines[itemRows/2] = lipgloss.NewStyle().
+			Foreground(colorText).
+			Background(colorSurface).
+			Render(truncateAndCenter(message, innerWidth))
 	} else {
 		offset := 0
 		if cursor >= itemRows {
@@ -275,7 +289,7 @@ func renderSwitcherSelector(m *Model) string {
 			if index < len(items) {
 				lines[i] = formatItemRow(items[index], index == cursor, innerWidth, &m.tree)
 			} else {
-				lines[i] = strings.Repeat(" ", innerWidth)
+				lines[i] = surfaceSpaces(innerWidth)
 			}
 		}
 	}
@@ -305,14 +319,14 @@ func renderSwitcherHelp(keyMap KeyMap, terminalWidth, terminalHeight int) string
 	rows := max(1, min(len(entries), terminalHeight-4))
 	lines := make([]string, rows)
 	for i := 0; i < rows; i++ {
-		key := helpKeyStyle.Render(entries[i].keys)
-		plain := entries[i].keys + "  " + entries[i].desc
-		padding := innerWidth - ansi.StringWidth(plain)
+		key := helpKeyStyle.Background(colorSurface).Render(entries[i].keys)
+		description := helpStyle.Background(colorSurface).Render(entries[i].desc)
+		padding := innerWidth - ansi.StringWidth(entries[i].keys) - ansi.StringWidth(entries[i].desc)
 		if padding < 2 {
-			lines[i] = padOrTruncate(key+"  "+entries[i].desc, innerWidth)
+			lines[i] = surfacePadOrTruncate(key+surfaceSpaces(2)+description, innerWidth)
 			continue
 		}
-		lines[i] = key + strings.Repeat(" ", padding) + helpStyle.Render(entries[i].desc)
+		lines[i] = key + surfaceSpaces(padding) + description
 	}
 	return drawTitledBorder("help", strings.Join(lines, "\n"), width, rows)
 }

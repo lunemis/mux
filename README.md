@@ -144,7 +144,7 @@ Or set:
 export TMUX_PEEKER_THEME=solarized-gruvbox
 ```
 
-Theme precedence is `--theme`, then `TMUX_PEEKER_THEME`, then the config file, then `default`. Palettes live in [`theme/*.json`](theme/) and are embedded at build time. Set `colors.background` to `"NONE"` to preserve the terminal canvas background.
+Theme precedence is `--theme`, then `TMUX_PEEKER_THEME`, then the config file, then `default`. Palettes live in [`theme/*.json`](theme/) and are embedded at build time. Set `colors.background` to `"NONE"` to preserve the terminal canvas background. The required `colors.surface` role keeps selector and help cards opaque independently of that canvas setting.
 
 ## Migrating from `mux`
 

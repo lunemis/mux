@@ -123,6 +123,7 @@ func formatSessionRow(s tmux.Session, expanded, selected bool, width int) string
 
 	return lipgloss.NewStyle().
 		Foreground(colorText).
+		Background(colorSurface).
 		Render(row)
 }
 
@@ -153,6 +154,7 @@ func formatWindowRow(w *tmux.Window, expanded, selected bool, width int) string 
 	}
 	return lipgloss.NewStyle().
 		Foreground(colorText).
+		Background(colorSurface).
 		Render(row)
 }
 
@@ -178,6 +180,7 @@ func formatPaneRow(p *tmux.Pane, selected bool, width int) string {
 	}
 	return lipgloss.NewStyle().
 		Foreground(colorMuted).
+		Background(colorSurface).
 		Render(row)
 }
 

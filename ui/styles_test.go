@@ -27,4 +27,7 @@ func TestUseThemeAppliesSemanticPalette(t *testing.T) {
 	if got := string(colorSeparator); got != "#076678" {
 		t.Errorf("colorSeparator = %q, want #076678", got)
 	}
+	if got := string(colorSurface); got != "#FBF1C7" {
+		t.Errorf("colorSurface = %q, want #FBF1C7", got)
+	}
 }

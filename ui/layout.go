@@ -80,8 +80,8 @@ func drawTitledBorder(title, content string, width, height int) string {
 	top := "╭" + label + strings.Repeat("─", max(0, innerWidth-ansi.StringWidth(label))) + "╮"
 
 	lines := strings.Split(content, "\n")
-	borderStyle := lipgloss.NewStyle().Foreground(colorBorder)
-	titleBorderStyle := lipgloss.NewStyle().Foreground(colorSeparator)
+	borderStyle := lipgloss.NewStyle().Foreground(colorBorder).Background(colorSurface)
+	titleBorderStyle := lipgloss.NewStyle().Foreground(colorSeparator).Background(colorSurface)
 	result := make([]string, 0, height+2)
 	result = append(result, titleBorderStyle.Render(top))
 	for i := 0; i < height; i++ {

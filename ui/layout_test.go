@@ -2,11 +2,15 @@ package ui
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
+	"github.com/aemonge/tmux-peeker/theme"
 	"github.com/aemonge/tmux-peeker/tmux"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -89,6 +93,222 @@ func TestOverlayCenteredHandlesANSIAndWideCharacters(t *testing.T) {
 	}
 	if !strings.Contains(ansi.Strip(output), "peek") {
 		t.Error("styled overlay content is missing")
+	}
+}
+
+func TestSelectorAndHelpCardsApplyExpectedBackgroundToEveryCell(t *testing.T) {
+	useSolarizedTrueColor(t)
+
+	surface := rgb{r: 251, g: 241, b: 199}
+	selected := rgb{r: 213, g: 196, b: 161}
+	empty := NewModel()
+	empty.width = 100
+	empty.height = 20
+
+	populated := NewModel()
+	populated.width = 100
+	populated.height = 20
+	populated.sessions = []tmux.Session{
+		{Name: "work", Created: time.Now()},
+		{Name: "notes", Created: time.Now()},
+	}
+	populated.applyFilter()
+
+	window := tmux.Window{Index: 1, Name: "editor"}
+	pane := tmux.Pane{Index: 2, Command: "nvim"}
+	tests := []struct {
+		name       string
+		rendered   string
+		background []rgb
+		width      int
+		height     int
+	}{
+		{
+			name: "empty selector", rendered: renderSwitcherSelector(&empty),
+			background: []rgb{surface}, width: switcherWidth(empty.width),
+			height: switcherRows(0, empty.height) + 2,
+		},
+		{
+			name: "help", rendered: renderSwitcherHelp(populated.keyMap, populated.width, populated.height),
+			background: []rgb{surface}, width: switcherWidth(populated.width), height: 11,
+		},
+		{
+			name: "narrow help", rendered: renderSwitcherHelp(populated.keyMap, 76, populated.height),
+			background: []rgb{surface}, width: switcherWidth(76), height: 11,
+		},
+		{name: "session row", rendered: formatSessionRow(populated.sessions[1], false, false, 48), background: []rgb{surface}, width: 48, height: 1},
+		{name: "window row", rendered: formatWindowRow(&window, false, false, 48), background: []rgb{surface}, width: 48, height: 1},
+		{name: "pane row", rendered: formatPaneRow(&pane, false, 48), background: []rgb{surface}, width: 48, height: 1},
+		{name: "selected session", rendered: formatSessionRow(populated.sessions[0], false, true, 48), background: []rgb{selected}, width: 48, height: 1},
+		{name: "selected window", rendered: formatWindowRow(&window, false, true, 48), background: []rgb{selected}, width: 48, height: 1},
+		{name: "selected pane", rendered: formatPaneRow(&pane, true, 48), background: []rgb{selected}, width: 48, height: 1},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assertRenderedDimensions(t, test.rendered, test.width, test.height)
+			assertEveryVisibleCellUsesBackground(t, test.rendered, test.background...)
+		})
+	}
+
+	t.Run("composed selector roles", func(t *testing.T) {
+		rendered := renderSwitcherSelector(&populated)
+		width := switcherWidth(populated.width)
+		height := switcherRows(len(populated.sessions), populated.height) + 2
+		assertRenderedDimensions(t, rendered, width, height)
+		lines := strings.Split(rendered, "\n")
+		assertEveryVisibleCellUsesBackground(t, lines[0], surface)
+		assertEveryVisibleCellUsesBackground(t, ansi.Cut(lines[1], 0, 1), surface)
+		assertEveryVisibleCellUsesBackground(t, ansi.Cut(lines[1], 1, width-1), selected)
+		assertEveryVisibleCellUsesBackground(t, ansi.Cut(lines[1], width-1, width), surface)
+		for _, line := range lines[2:] {
+			assertEveryVisibleCellUsesBackground(t, line, surface)
+		}
+	})
+}
+
+func TestSurfaceDoesNotApplyToPreviewCanvasOrModal(t *testing.T) {
+	useSolarizedTrueColor(t)
+
+	m := NewModel()
+	m.width = 80
+	m.height = 20
+	m.previewContent = "preview"
+	surface := rgb{r: 251, g: 241, b: 199}
+	for name, rendered := range map[string]string{
+		"preview canvas": m.previewBackground(),
+		"modal":          renderModal("content"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertNoVisibleCellUsesBackground(t, rendered, surface)
+		})
+	}
+}
+
+func useSolarizedTrueColor(t *testing.T) {
+	t.Helper()
+	previousProfile := lipgloss.ColorProfile()
+	lipgloss.SetColorProfile(0) // termenv.TrueColor
+	t.Cleanup(func() {
+		lipgloss.SetColorProfile(previousProfile)
+		UseTheme(theme.Default)
+	})
+
+	selectedTheme, err := theme.Get("solarized-gruvbox")
+	if err != nil {
+		t.Fatal(err)
+	}
+	UseTheme(selectedTheme)
+}
+
+type rgb struct {
+	r int
+	g int
+	b int
+}
+
+func assertRenderedDimensions(t *testing.T, rendered string, width, height int) {
+	t.Helper()
+	lines := strings.Split(rendered, "\n")
+	if len(lines) != height {
+		t.Fatalf("rendered height = %d, want %d", len(lines), height)
+	}
+	for index, line := range lines {
+		if got := ansi.StringWidth(line); got != width {
+			t.Fatalf("line %d width = %d, want %d", index, got, width)
+		}
+	}
+}
+
+func assertEveryVisibleCellUsesBackground(t *testing.T, rendered string, expected ...rgb) {
+	t.Helper()
+	visibleCells := 0
+	visitVisibleBackgrounds(rendered, func(offset int, r rune, background *rgb) {
+		visibleCells++
+		for _, color := range expected {
+			if background != nil && approximatelyEqualRGB(*background, color) {
+				return
+			}
+		}
+		t.Fatalf("cell %q at byte %d has background %v, want one of %v; rendered:\n%s", r, offset, background, expected, ansi.Strip(rendered))
+	})
+	if visibleCells == 0 {
+		t.Fatal("rendered output has no visible cells")
+	}
+}
+
+func assertNoVisibleCellUsesBackground(t *testing.T, rendered string, forbidden rgb) {
+	t.Helper()
+	visibleCells := 0
+	visitVisibleBackgrounds(rendered, func(offset int, r rune, background *rgb) {
+		visibleCells++
+		if background != nil && approximatelyEqualRGB(*background, forbidden) {
+			t.Fatalf("cell %q at byte %d unexpectedly uses surface background; rendered:\n%s", r, offset, ansi.Strip(rendered))
+		}
+	})
+	if visibleCells == 0 {
+		t.Fatal("rendered output has no visible cells")
+	}
+}
+
+func visitVisibleBackgrounds(rendered string, visit func(offset int, r rune, background *rgb)) {
+	var background *rgb
+	for offset := 0; offset < len(rendered); {
+		if rendered[offset] == '\x1b' && offset+1 < len(rendered) && rendered[offset+1] == '[' {
+			end := strings.IndexByte(rendered[offset+2:], 'm')
+			if end >= 0 {
+				applyBackgroundSGR(rendered[offset+2:offset+2+end], &background)
+				offset += end + 3
+				continue
+			}
+		}
+
+		r, size := utf8.DecodeRuneInString(rendered[offset:])
+		if r != '\n' {
+			visit(offset, r, background)
+		}
+		offset += size
+	}
+}
+
+func approximatelyEqualRGB(left, right rgb) bool {
+	differences := 0
+	for _, delta := range []int{left.r - right.r, left.g - right.g, left.b - right.b} {
+		if absInt(delta) > 1 {
+			return false
+		}
+		if delta != 0 {
+			differences++
+		}
+	}
+	return differences <= 1
+}
+
+func absInt(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
+}
+
+func applyBackgroundSGR(sequence string, background **rgb) {
+	parameters := strings.Split(sequence, ";")
+	for i := 0; i < len(parameters); i++ {
+		switch parameters[i] {
+		case "", "0", "49":
+			*background = nil
+		case "48":
+			if i+4 >= len(parameters) || parameters[i+1] != "2" {
+				continue
+			}
+			r, errR := strconv.Atoi(parameters[i+2])
+			g, errG := strconv.Atoi(parameters[i+3])
+			b, errB := strconv.Atoi(parameters[i+4])
+			if errR == nil && errG == nil && errB == nil {
+				color := rgb{r: r, g: g, b: b}
+				*background = &color
+			}
+			i += 4
+		}
 	}
 }
 

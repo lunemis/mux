@@ -41,7 +41,7 @@ func TestDefaultThemeContainsEveryColorRole(t *testing.T) {
 
 	for _, role := range []string{
 		"primary", "accent", "success", "danger", "muted",
-		"border", "separator", "selected", "cursor", "text",
+		"border", "separator", "surface", "selected", "cursor", "text",
 	} {
 		assertHexColor(t, "colors."+role, got.Colors[role])
 	}
@@ -70,6 +70,7 @@ func TestSolarizedGruvboxThemeUsesRequestedPalette(t *testing.T) {
 		"accent":     "#427B58",
 		"success":    "#79740E",
 		"separator":  "#076678",
+		"surface":    "#FBF1C7",
 		"cursor":     "#8F3F71",
 	}
 	for role, color := range want {
@@ -97,6 +98,9 @@ func TestLoadDefaultTheme(t *testing.T) {
 	}
 	if got.Colors.Separator != "#2563EB" {
 		t.Errorf("Colors.Separator = %q, want #2563EB", got.Colors.Separator)
+	}
+	if got.Colors.Surface != "#111827" {
+		t.Errorf("Colors.Surface = %q, want #111827", got.Colors.Surface)
 	}
 }
 
@@ -146,6 +150,28 @@ func TestLoadRejectsMissingRequiredColor(t *testing.T) {
 	_, err = Load(bytes.NewReader(data))
 	if err == nil || !strings.Contains(err.Error(), "border") {
 		t.Fatalf("Load() error = %v, want missing border error", err)
+	}
+}
+
+func TestLoadRejectsMissingSurfaceColor(t *testing.T) {
+	data, err := os.ReadFile("default.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var raw themeFile
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatal(err)
+	}
+	delete(raw.Colors, "surface")
+	data, err = json.Marshal(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Load(bytes.NewReader(data))
+	if err == nil || !strings.Contains(err.Error(), "surface") {
+		t.Fatalf("Load() error = %v, want missing surface error", err)
 	}
 }
 
