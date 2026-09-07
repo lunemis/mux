@@ -39,6 +39,7 @@ func ListSessions() ([]Session, error) {
 		}
 		sessions = append(sessions, s)
 	}
+	resolveSessionCommands(sessions)
 
 	current := currentSessionForSwitcher(sessions, currentSessionName())
 	sortSessionsForSwitcher(sessions, current)
@@ -63,7 +64,6 @@ func parseLine(line string) (Session, error) {
 		lastAttached = time.Unix(lastAttachedUnix, 0)
 	}
 
-	activeCommand := resolveCommand(panePID, parts[6])
 	gitInfo := LookupGitInfo(parts[4])
 
 	return Session{
@@ -73,7 +73,7 @@ func parseLine(line string) (Session, error) {
 		LastAttached:  lastAttached,
 		Attached:      attached > 0,
 		Directory:     parts[4],
-		ActiveCommand: activeCommand,
+		ActiveCommand: parts[6],
 		PanePID:       panePID,
 		GitBranch:     gitInfo.Branch,
 		IsWorktree:    gitInfo.IsWorktree,

@@ -9,8 +9,9 @@ import (
 
 // mockRunner records calls and returns pre-configured responses.
 type mockRunner struct {
-	outputs map[string]mockResult
-	runs    []string
+	outputs     map[string]mockResult
+	outputCalls []string
+	runs        []string
 }
 
 type mockResult struct {
@@ -32,6 +33,7 @@ func (m *mockRunner) OnOutput(out []byte, err error, name string, args ...string
 
 func (m *mockRunner) Output(name string, args ...string) ([]byte, error) {
 	k := m.key(name, args...)
+	m.outputCalls = append(m.outputCalls, k)
 	if r, ok := m.outputs[k]; ok {
 		return r.out, r.err
 	}
@@ -66,11 +68,9 @@ func TestListSessionsWithMock(t *testing.T) {
 		line2 := fmt.Sprintf("ai|1|%d|0|/home/user/ai|%d|claude|200", now-7200, now-120)
 		out := line1 + "\n" + line2
 
-		// Mock the list-sessions call
 		m.OnOutput([]byte(out), nil, "tmux", "list-sessions", "-F", listFormat)
-		// Mock resolveCommand calls — pgrep returns nothing (so rawCmd is used)
-		m.OnOutput(nil, fmt.Errorf("no children"), "pgrep", "-P", "100")
-		m.OnOutput(nil, fmt.Errorf("no children"), "pgrep", "-P", "200")
+		m.OnOutput([]byte("1 0\n"), nil,
+			"ps", "-e", "-o", "pid=", "-o", "ppid=")
 		m.OnOutput([]byte("ai\n"), nil,
 			"tmux", "display-message", "-p", "-t", "%9", "#{session_name}")
 
@@ -88,6 +88,11 @@ func TestListSessionsWithMock(t *testing.T) {
 		if !sessions[0].Current || sessions[1].Current {
 			t.Errorf("Current flags = [%t %t], want [true false]", sessions[0].Current, sessions[1].Current)
 		}
+		assertOutputCalls(t, m, []string{
+			"tmux list-sessions -F " + listFormat,
+			"ps -e -o pid= -o ppid=",
+			"tmux display-message -p -t %9 #{session_name}",
+		})
 	})
 }
 
