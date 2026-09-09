@@ -1,5 +1,7 @@
 # Binary
-mux
+/tmux-peeker
+# Legacy local build artifact; not a supported alias.
+/mux
 *.exe
 
 # Build

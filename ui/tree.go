@@ -1,6 +1,6 @@
 package ui
 
-import "github.com/lunemis/mux/tmux"
+import "github.com/aemonge/tmux-peeker/tmux"
 
 // itemKind identifies whether a list row represents a session, window, or pane.
 type itemKind int
@@ -188,4 +188,3 @@ func previewKeyForItem(it listItem) previewKey {
 		return previewKey{session: it.session.Name, window: -1, pane: -1}
 	}
 }
-

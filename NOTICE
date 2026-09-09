@@ -1,0 +1,11 @@
+tmux-peeker
+===========
+
+This project is an independent fork derived from mux:
+https://github.com/lunemis/mux
+
+The upstream Git history and MIT license are preserved. Copyright remains with
+the respective upstream and tmux-peeker contributors.
+
+tmux-peeker is not affiliated with, sponsored by, or endorsed by the upstream
+mux project.

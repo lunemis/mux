@@ -22,5 +22,5 @@ func CapturePaneTarget(target string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("capture pane %s: %w", target, err)
 	}
-	return strings.TrimRight(string(out), "\n"), nil
+	return strings.TrimSuffix(string(out), "\n"), nil
 }

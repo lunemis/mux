@@ -1,67 +1,69 @@
 package ui
 
 import (
-	"os"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
-func TestShortenPath(t *testing.T) {
-	home, _ := os.UserHomeDir()
+func TestRenderPreviewFillsCanvasWithoutChrome(t *testing.T) {
+	const width, height = 24, 6
+	output := ansi.Strip(renderPreview("preview output", width, height))
+	lines := strings.Split(output, "\n")
 
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{home + "/projects/foo", "~/projects/foo"},
-		{home, "~"},
-		{"/tmp/other", "/tmp/other"},
-		{"", ""},
+	if len(lines) != height {
+		t.Fatalf("preview lines = %d, want %d", len(lines), height)
 	}
-
-	for _, tt := range tests {
-		got := shortenPath(tt.input)
-		if got != tt.want {
-			t.Errorf("shortenPath(%q) = %q, want %q", tt.input, got, tt.want)
+	for i, line := range lines {
+		if got := ansi.StringWidth(line); got != width {
+			t.Errorf("line %d width = %d, want %d", i, got, width)
 		}
+	}
+	if strings.ContainsAny(output, "╭╮╰╯│") {
+		t.Errorf("edge-to-edge preview contains border chrome: %q", output)
+	}
+	if strings.Contains(output, "[ pi ]") || strings.Contains(output, "──") {
+		t.Errorf("edge-to-edge preview contains legacy title chrome: %q", output)
 	}
 }
 
-func TestShortenPathTruncatesLong(t *testing.T) {
-	long := "/very/long/path/that/exceeds/thirty/five/characters/definitely"
-	got := shortenPath(long)
-	if len(got) > 35 {
-		t.Errorf("shortenPath should truncate to 35 chars, got len=%d: %q", len(got), got)
+func TestRenderPreviewAnchorsCapturedOutputBottomLeft(t *testing.T) {
+	output := ansi.Strip(renderPreview("prompt", 24, 6))
+	lines := strings.Split(output, "\n")
+	if !strings.HasPrefix(lines[len(lines)-1], "prompt") {
+		t.Errorf("bottom row = %q, want prompt anchored at left", lines[len(lines)-1])
 	}
-	if !strings.HasPrefix(got, "...") {
-		t.Errorf("truncated path should start with '...', got %q", got)
-	}
-}
-
-func TestAiLabelPlain(t *testing.T) {
-	// Known commands should return non-empty
-	for _, cmd := range []string{"claude", "codex", "aider", "gemini"} {
-		info := aiLabelPlain(cmd)
-		if info.styled == "" {
-			t.Errorf("aiLabelPlain(%q) returned empty styled", cmd)
-		}
-		if info.text == "" {
-			t.Errorf("aiLabelPlain(%q) returned empty text", cmd)
-		}
-		if info.extraWidth != 1 {
-			t.Errorf("aiLabelPlain(%q) extraWidth = %d, want 1", cmd, info.extraWidth)
-		}
-	}
-	// Unknown commands should return empty
-	info := aiLabelPlain("bash")
-	if info.styled != "" {
-		t.Errorf("aiLabelPlain(%q) styled = %q, want empty", "bash", info.styled)
+	if strings.Contains(strings.Join(lines[:len(lines)-1], "\n"), "prompt") {
+		t.Error("prompt should render only on the bottom row")
 	}
 }
 
-func TestRenderPreviewNilSession(t *testing.T) {
-	output := renderPreview(nil, "", 40, 10, nil)
-	if !strings.Contains(output, "No session selected") {
-		t.Error("nil session should show 'No session selected'")
+func TestRenderPreviewCropsTopAndRightWithoutWrapping(t *testing.T) {
+	output := ansi.Strip(renderPreview("old\nleft-edge-right\nlatest", 10, 2))
+	if strings.Contains(output, "old") {
+		t.Error("preview should crop the oldest row from the top")
+	}
+	if strings.Contains(output, "right") {
+		t.Error("preview should crop overflowing text from the right")
+	}
+	if !strings.Contains(output, "left-edge-") || !strings.Contains(output, "latest") {
+		t.Error("preview should preserve bottom rows and their left edge")
+	}
+	if lines := strings.Count(output, "\n") + 1; lines != 2 {
+		t.Errorf("preview lines = %d, want 2 without wrapping", lines)
+	}
+}
+
+func TestRenderPreviewEmptyCanvas(t *testing.T) {
+	const width, height = 12, 4
+	output := renderPreview("", width, height)
+	for i, line := range strings.Split(output, "\n") {
+		if got := ansi.StringWidth(line); got != width {
+			t.Errorf("empty line %d width = %d, want %d", i, got, width)
+		}
+	}
+	if lines := strings.Count(output, "\n") + 1; lines != height {
+		t.Errorf("empty preview lines = %d, want %d", lines, height)
 	}
 }

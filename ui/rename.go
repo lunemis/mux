@@ -1,9 +1,9 @@
 package ui
 
 import (
+	"github.com/aemonge/tmux-peeker/tmux"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/lunemis/mux/tmux"
 )
 
 type renameModel struct {
@@ -31,22 +31,18 @@ func newRenameModel(oldName string) renameModel {
 	}
 }
 
-func (m renameModel) Update(msg tea.Msg) (renameModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter":
-			newName := m.input.Value()
-			if newName == "" || newName == m.oldName {
-				return m, nil
-			}
-			if err := tmux.RenameSession(m.oldName, newName); err != nil {
-				m.err = err
-				return m, nil
-			}
-			return m, func() tea.Msg {
-				return sessionRenamedMsg{oldName: m.oldName, newName: newName}
-			}
+func (m renameModel) Update(msg tea.Msg, keyMap KeyMap) (renameModel, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok && keyMap.Matches(contextRename, "submit", key.String()) {
+		newName := m.input.Value()
+		if newName == "" || newName == m.oldName {
+			return m, nil
+		}
+		if err := tmux.RenameSession(m.oldName, newName); err != nil {
+			m.err = err
+			return m, nil
+		}
+		return m, func() tea.Msg {
+			return sessionRenamedMsg{oldName: m.oldName, newName: newName}
 		}
 	}
 
@@ -55,10 +51,11 @@ func (m renameModel) Update(msg tea.Msg) (renameModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m renameModel) View() string {
+func (m renameModel) View(keyMap KeyMap) string {
 	s := inputLabelStyle.Render("Rename Session") + "\n\n"
 	s += inputLabelStyle.Render("Name: ") + m.input.View() + "\n\n"
-	s += helpStyle.Render("enter confirm • esc cancel")
+	s += helpStyle.Render(keyMap.Help(contextRename, "submit") + " confirm • " +
+		keyMap.Help(contextRename, "cancel") + " cancel")
 
 	if m.err != nil {
 		s += "\n" + errorStyle.Render(m.err.Error())

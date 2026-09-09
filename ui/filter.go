@@ -25,15 +25,14 @@ func newFilterModel(currentText string) filterModel {
 	return filterModel{input: fi}
 }
 
-func (m filterModel) Update(msg tea.Msg) (filterModel, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "esc":
+func (m filterModel) Update(msg tea.Msg, keyMap KeyMap) (filterModel, tea.Cmd) {
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch {
+		case keyMap.Matches(contextFilter, "clear", key.String()):
 			return m, func() tea.Msg {
 				return filterAppliedMsg{text: "", cleared: true}
 			}
-		case "enter":
+		case keyMap.Matches(contextFilter, "apply", key.String()):
 			return m, func() tea.Msg {
 				return filterAppliedMsg{text: m.input.Value(), cleared: false}
 			}
@@ -45,8 +44,10 @@ func (m filterModel) Update(msg tea.Msg) (filterModel, tea.Cmd) {
 	return m, cmd
 }
 
-func (m filterModel) View() string {
-	return inputLabelStyle.Render("/ ") + m.input.View()
+func (m filterModel) View(keyMap KeyMap) string {
+	return inputLabelStyle.Render(keyMap.Help(contextList, "filter")+" ") + m.input.View() +
+		helpStyle.Render("  "+keyMap.Help(contextFilter, "apply")+" apply • "+
+			keyMap.Help(contextFilter, "clear")+" clear")
 }
 
 func (m filterModel) LiveText() string {

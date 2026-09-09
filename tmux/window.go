@@ -41,6 +41,17 @@ func ListWindows(sessionName string) ([]Window, error) {
 	return windows, nil
 }
 
+// MoveWindow moves a window into the destination session's next free index
+// without changing the destination session's active window.
+func MoveWindow(sourceSession string, windowIndex int, destinationSession string) error {
+	source := fmt.Sprintf("%s:%d", sourceSession, windowIndex)
+	destination := destinationSession + ":"
+	if err := runner.Run("tmux", "move-window", "-d", "-s", source, "-t", destination); err != nil {
+		return fmt.Errorf("move window %s to %s: %w", source, destinationSession, err)
+	}
+	return nil
+}
+
 // ListPanes returns all panes in the given window, sorted by index.
 // windowIndex is the tmux window index (as reported by ListWindows).
 func ListPanes(sessionName string, windowIndex int) ([]Pane, error) {

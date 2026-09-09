@@ -9,8 +9,9 @@ import (
 
 // mockRunner records calls and returns pre-configured responses.
 type mockRunner struct {
-	outputs map[string]mockResult
-	runs    []string
+	outputs     map[string]mockResult
+	outputCalls []string
+	runs        []string
 }
 
 type mockResult struct {
@@ -32,6 +33,7 @@ func (m *mockRunner) OnOutput(out []byte, err error, name string, args ...string
 
 func (m *mockRunner) Output(name string, args ...string) ([]byte, error) {
 	k := m.key(name, args...)
+	m.outputCalls = append(m.outputCalls, k)
 	if r, ok := m.outputs[k]; ok {
 		return r.out, r.err
 	}
@@ -43,31 +45,44 @@ func (m *mockRunner) Run(name string, args ...string) error {
 	return nil
 }
 
+func assertOutputCalls(t *testing.T, m *mockRunner, want []string) {
+	t.Helper()
+	if len(m.outputCalls) != len(want) {
+		t.Fatalf("output calls = %q, want %q", m.outputCalls, want)
+	}
+	for i := range want {
+		if m.outputCalls[i] != want[i] {
+			t.Errorf("output call %d = %q, want %q", i, m.outputCalls[i], want[i])
+		}
+	}
+}
+
 func withMock(t *testing.T, fn func(m *mockRunner)) {
 	t.Helper()
+	t.Setenv("TMUX_PANE", "")
+	t.Setenv(originSessionEnv, "")
 	m := newMockRunner()
 	old := runner
 	SetRunner(m)
-	// Clear command cache to avoid cross-test interference
-	cmdCacheMu.Lock()
-	cmdCache = make(map[int]cachedCommand)
-	cmdCacheMu.Unlock()
 	defer func() { runner = old }()
 	fn(m)
 }
 
-func TestListSessionsWithMock(t *testing.T) {
+func TestListSessionsUsesOnlyTmuxData(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
+		t.Setenv("TMUX_PANE", "%9")
 		now := time.Now().Unix()
-		line1 := fmt.Sprintf("dev|2|%d|1|/home/user/dev|%d|bash|100", now-3600, now-60)
-		line2 := fmt.Sprintf("ai|1|%d|0|/home/user/ai|%d|claude|200", now-7200, now-120)
+		line1 := strings.Join([]string{
+			"dev", "2", fmt.Sprint(now - 3600), "1", "/home/user/dev", fmt.Sprint(now - 3600), "nvim",
+		}, sessionFieldSeparator)
+		line2 := strings.Join([]string{
+			"logs", "1", fmt.Sprint(now - 7200), "0", "/home/user/logs", fmt.Sprint(now - 120), "python",
+		}, sessionFieldSeparator)
 		out := line1 + "\n" + line2
 
-		// Mock the list-sessions call
 		m.OnOutput([]byte(out), nil, "tmux", "list-sessions", "-F", listFormat)
-		// Mock resolveCommand calls — pgrep returns nothing (so rawCmd is used)
-		m.OnOutput(nil, fmt.Errorf("no children"), "pgrep", "-P", "100")
-		m.OnOutput(nil, fmt.Errorf("no children"), "pgrep", "-P", "200")
+		m.OnOutput([]byte("logs\n"), nil,
+			"tmux", "display-message", "-p", "-t", "%9", "#{session_name}")
 
 		sessions, err := ListSessions()
 		if err != nil {
@@ -76,25 +91,54 @@ func TestListSessionsWithMock(t *testing.T) {
 		if len(sessions) != 2 {
 			t.Fatalf("expected 2 sessions, got %d", len(sessions))
 		}
-		// Attached sessions first
-		if sessions[0].Name != "dev" {
-			t.Errorf("expected first session 'dev', got %q", sessions[0].Name)
+		if sessions[0].Name != "logs" || sessions[1].Name != "dev" {
+			t.Errorf("session order = [%s %s], want [logs dev]", sessions[0].Name, sessions[1].Name)
+		}
+		if sessions[0].ActiveCommand != "python" || sessions[1].ActiveCommand != "nvim" {
+			t.Errorf("raw commands = [%q %q], want [python nvim]", sessions[0].ActiveCommand, sessions[1].ActiveCommand)
+		}
+		if !sessions[0].Current || sessions[1].Current {
+			t.Errorf("Current flags = [%t %t], want [true false]", sessions[0].Current, sessions[1].Current)
+		}
+		assertOutputCalls(t, m, []string{
+			"tmux list-sessions -F " + listFormat,
+			"tmux display-message -p -t %9 #{session_name}",
+		})
+	})
+}
+
+func TestCurrentSessionNamePrefersPopupOrigin(t *testing.T) {
+	withMock(t, func(m *mockRunner) {
+		t.Setenv(originSessionEnv, "origin")
+		t.Setenv("TMUX_PANE", "%popup")
+
+		got := currentSessionName()
+		if got != "origin" {
+			t.Errorf("currentSessionName() = %q, want origin", got)
 		}
 	})
 }
 
-func TestResolveCommandWithMock(t *testing.T) {
+func TestCurrentSessionNameUsesInvokingPane(t *testing.T) {
 	withMock(t, func(m *mockRunner) {
-		// pgrep returns child PIDs
-		m.OnOutput([]byte("42\n43\n"), nil, "pgrep", "-P", "100")
-		// ps for PID 42 returns bash
-		m.OnOutput([]byte("/bin/bash\n"), nil, "ps", "-o", "args=", "-p", "42")
-		// ps for PID 43 returns claude
-		m.OnOutput([]byte("/usr/local/bin/claude --help\n"), nil, "ps", "-o", "args=", "-p", "43")
+		t.Setenv("TMUX_PANE", "%42")
+		m.OnOutput([]byte("work\n"), nil,
+			"tmux", "display-message", "-p", "-t", "%42", "#{session_name}")
 
-		result := resolveCommand(100, "bash")
-		if result != "claude" {
-			t.Errorf("expected 'claude', got %q", result)
+		got := currentSessionName()
+		if got != "work" {
+			t.Errorf("currentSessionName() = %q, want work", got)
+		}
+	})
+}
+
+func TestCurrentSessionNameOutsideTmuxIsEmpty(t *testing.T) {
+	withMock(t, func(m *mockRunner) {
+		if got := currentSessionName(); got != "" {
+			t.Errorf("currentSessionName() = %q, want empty", got)
+		}
+		if len(m.outputs) != 0 {
+			t.Errorf("unexpected tmux output calls configured: %d", len(m.outputs))
 		}
 	})
 }
@@ -107,8 +151,8 @@ func TestCapturePaneWithMock(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if content != "hello world" {
-			t.Errorf("expected 'hello world', got %q", content)
+		if content != "hello world\n" {
+			t.Errorf("expected one trailing blank row to be preserved, got %q", content)
 		}
 	})
 }

@@ -1,35 +1,62 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/aemonge/tmux-peeker/theme"
+	"github.com/charmbracelet/lipgloss"
+)
 
 var (
+	applyBackground bool
+
 	// Colors
-	colorPrimary  = lipgloss.Color("#7C3AED")
-	colorAccent   = lipgloss.Color("#22D3EE")
-	colorSuccess  = lipgloss.Color("#22C55E")
-	colorDanger   = lipgloss.Color("#EF4444")
-	colorMuted    = lipgloss.Color("#6B7280")
-	colorBorder   = lipgloss.Color("#374151")
-	colorSelected = lipgloss.Color("#312E81")
-	colorCursor   = lipgloss.Color("#A78BFA")
+	colorBackground lipgloss.Color
+	colorPrimary    lipgloss.Color
+	colorAccent     lipgloss.Color
+	colorDanger     lipgloss.Color
+	colorMuted      lipgloss.Color
+	colorBorder     lipgloss.Color
+	colorSeparator  lipgloss.Color
+	colorSurface    lipgloss.Color
+	colorSelected   lipgloss.Color
+	colorCursor     lipgloss.Color
+	colorText       lipgloss.Color
 
 	// Styles
-	titleStyle = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(colorAccent)
-
-	helpStyle = lipgloss.NewStyle().
-			Foreground(colorMuted)
-
-	helpKeyStyle = lipgloss.NewStyle().
-			Foreground(colorAccent).
-			Bold(true)
-
-	errorStyle = lipgloss.NewStyle().
-			Foreground(colorDanger).
-			Bold(true)
-
-	inputLabelStyle = lipgloss.NewStyle().
-			Foreground(colorAccent).
-			Bold(true)
+	titleStyle      lipgloss.Style
+	helpStyle       lipgloss.Style
+	helpKeyStyle    lipgloss.Style
+	errorStyle      lipgloss.Style
+	inputLabelStyle lipgloss.Style
 )
+
+func init() {
+	UseTheme(theme.Default)
+}
+
+// UseTheme applies a loaded theme to subsequent UI rendering.
+func UseTheme(value theme.Theme) {
+	background := strings.TrimSpace(value.Colors.Background)
+	applyBackground = background != "" && !strings.EqualFold(background, "NONE")
+	colorBackground = lipgloss.Color("")
+	if applyBackground {
+		colorBackground = lipgloss.Color(background)
+	}
+	colorPrimary = lipgloss.Color(value.Colors.Primary)
+	colorAccent = lipgloss.Color(value.Colors.Accent)
+	colorDanger = lipgloss.Color(value.Colors.Danger)
+	colorMuted = lipgloss.Color(value.Colors.Muted)
+	colorBorder = lipgloss.Color(value.Colors.Border)
+	colorSeparator = lipgloss.Color(value.Colors.Separator)
+	colorSurface = lipgloss.Color(value.Colors.Surface)
+	colorSelected = lipgloss.Color(value.Colors.Selected)
+	colorCursor = lipgloss.Color(value.Colors.Cursor)
+	colorText = lipgloss.Color(value.Colors.Text)
+
+	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(colorAccent)
+	helpStyle = lipgloss.NewStyle().Foreground(colorMuted)
+	helpKeyStyle = lipgloss.NewStyle().Foreground(colorAccent).Bold(true)
+	errorStyle = lipgloss.NewStyle().Foreground(colorDanger).Bold(true)
+	inputLabelStyle = lipgloss.NewStyle().Foreground(colorAccent).Bold(true)
+}

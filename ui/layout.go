@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+const minimumSwitcherHeight = 12
+
 // padOrTruncate ensures a string is exactly `width` visible characters
 func padOrTruncate(s string, width int) string {
 	w := ansi.StringWidth(s)
@@ -17,6 +19,16 @@ func padOrTruncate(s string, width int) string {
 		return s + strings.Repeat(" ", width-w)
 	}
 	return s
+}
+
+func truncateAndCenter(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	if ansi.StringWidth(s) > width {
+		s = ansi.Truncate(s, width, "")
+	}
+	return lipgloss.PlaceHorizontal(width, lipgloss.Center, s)
 }
 
 // fixedBox takes rendered content and forces it to exactly width x height visible area.
@@ -35,28 +47,50 @@ func fixedBox(content string, width, height int) string {
 	return strings.Join(result, "\n")
 }
 
-// joinHorizontalFixed joins two blocks of text side-by-side, line by line
-func joinHorizontalFixed(left, right string) string {
-	leftLines := strings.Split(left, "\n")
-	rightLines := strings.Split(right, "\n")
-
-	maxLen := len(leftLines)
-	if len(rightLines) > maxLen {
-		maxLen = len(rightLines)
+// overlayCentered composites foreground over background at terminal-cell
+// boundaries. ANSI-aware cuts preserve styling and wide-character alignment.
+func overlayCentered(background, foreground string, width, height int) string {
+	backgroundLines := strings.Split(fixedBox(background, width, height), "\n")
+	foregroundLines := strings.Split(foreground, "\n")
+	foregroundWidth := 0
+	for _, line := range foregroundLines {
+		foregroundWidth = max(foregroundWidth, ansi.StringWidth(line))
 	}
+	foregroundWidth = min(foregroundWidth, width)
+	foregroundHeight := min(len(foregroundLines), height)
+	x := max(0, (width-foregroundWidth)/2)
+	y := max(0, (height-foregroundHeight)/2)
 
-	result := make([]string, maxLen)
-	for i := 0; i < maxLen; i++ {
-		l := ""
-		r := ""
-		if i < len(leftLines) {
-			l = leftLines[i]
-		}
-		if i < len(rightLines) {
-			r = rightLines[i]
-		}
-		result[i] = l + r
+	for i := 0; i < foregroundHeight; i++ {
+		base := backgroundLines[y+i]
+		overlay := padOrTruncate(foregroundLines[i], foregroundWidth)
+		left := ansi.Cut(base, 0, x)
+		right := ansi.Cut(base, x+foregroundWidth, width)
+		backgroundLines[y+i] = padOrTruncate(left+overlay+right, width)
 	}
+	return strings.Join(backgroundLines, "\n")
+}
+
+// drawTitledBorder wraps fixed-height content in a rounded border whose top
+// edge carries a compact context title.
+func drawTitledBorder(title, content string, width, height int) string {
+	innerWidth := max(0, width-2)
+	label := " " + title + " "
+	label = ansi.Truncate(label, innerWidth, "")
+	top := "╭" + label + strings.Repeat("─", max(0, innerWidth-ansi.StringWidth(label))) + "╮"
+
+	lines := strings.Split(content, "\n")
+	borderStyle := lipgloss.NewStyle().Foreground(colorSeparator).Background(colorSurface)
+	result := make([]string, 0, height+2)
+	result = append(result, borderStyle.Render(top))
+	for i := 0; i < height; i++ {
+		line := ""
+		if i < len(lines) {
+			line = lines[i]
+		}
+		result = append(result, borderStyle.Render("│")+padOrTruncate(line, innerWidth)+borderStyle.Render("│"))
+	}
+	result = append(result, borderStyle.Render("╰"+strings.Repeat("─", innerWidth)+"╯"))
 	return strings.Join(result, "\n")
 }
 
@@ -84,7 +118,12 @@ func drawBorder(content string, width, height int) string {
 	// Bottom border
 	result = append(result, "╰"+strings.Repeat("─", innerWidth)+"╯")
 
-	return lipgloss.NewStyle().
-		Foreground(colorBorder).
-		Render(strings.Join(result, "\n"))
+	borderStyle := lipgloss.NewStyle().Foreground(colorBorder)
+	result[0] = borderStyle.Render(result[0])
+	for i := 1; i < len(result)-1; i++ {
+		line := strings.TrimSuffix(strings.TrimPrefix(result[i], "│"), "│")
+		result[i] = borderStyle.Render("│") + line + borderStyle.Render("│")
+	}
+	result[len(result)-1] = borderStyle.Render(result[len(result)-1])
+	return strings.Join(result, "\n")
 }

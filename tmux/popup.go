@@ -9,13 +9,13 @@ import (
 )
 
 const (
-	popupWidth     = "85%"
-	popupHeight    = "80%"
+	popupWidth     = "100%"
+	popupHeight    = "100%"
 	minTmuxVersion = 3.2
 	DefaultBindKey = "m"
 
-	// muxKeybindMarker tags lines we own so we can replace/remove them idempotently.
-	muxKeybindMarker = "# mux popup keybinding"
+	// keybindMarker tags lines we own so we can replace them idempotently.
+	keybindMarker = "# tmux-peeker popup keybinding"
 
 	// ohMyTmuxSignature is the first line of gpakosz/.tmux's bundled .tmux.conf.
 	// It opens a heredoc that lets the file double as a shell script when
@@ -27,11 +27,11 @@ const (
 	ohMyTmuxSentinel = `# "$@"`
 )
 
-// OpenPopup opens mux inside a tmux display-popup overlay.
-// Must be called from inside a tmux session.
-func OpenPopup() error {
+// OpenPopup opens tmux-peeker inside a tmux display-popup overlay and forwards
+// args to the current process. It must be called from inside a tmux session.
+func OpenPopup(args ...string) error {
 	if os.Getenv("TMUX") == "" {
-		return fmt.Errorf("mux popup must be run inside a tmux session")
+		return fmt.Errorf("tmux-peeker popup must be run inside a tmux session")
 	}
 
 	version, err := getTmuxVersion()
@@ -42,21 +42,37 @@ func OpenPopup() error {
 		return fmt.Errorf("tmux %.1f+ required for popup (current: %.1f)", minTmuxVersion, version)
 	}
 
-	muxPath, err := os.Executable()
+	executablePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to find mux executable: %w", err)
+		return fmt.Errorf("failed to find tmux-peeker executable: %w", err)
 	}
 
-	cmd := exec.Command("tmux", "display-popup",
-		"-E",
-		"-w", popupWidth,
-		"-h", popupHeight,
-		muxPath,
-	)
+	origin := currentSessionName()
+	cmd := exec.Command("tmux", popupCommandArgs(executablePath, origin, args...)...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
+}
+
+func popupCommandArgs(executablePath, origin string, args ...string) []string {
+	popupArgs := []string{
+		"display-popup",
+		"-B",
+		"-E",
+		"-w", popupWidth,
+		"-h", popupHeight,
+	}
+	if origin != "" {
+		popupArgs = append(popupArgs, "-e", originSessionEnv+"="+origin)
+	}
+	popupArgs = append(popupArgs, executablePath)
+	return append(popupArgs, args...)
+}
+
+func popupBindLine(key, executablePath string) string {
+	return fmt.Sprintf(`bind %s run-shell '%s=#{q:session_name} "%s" popup'`,
+		key, originSessionEnv, executablePath)
 }
 
 func findTmuxConf() (string, error) {
@@ -135,34 +151,26 @@ func isOhMyTmux(confPath string) bool {
 //
 // For oh-my-tmux installs the bind line is routed to .tmux.conf.local and
 // inserted before the `# "$@"` sentinel (oh-my-tmux marks everything below
-// that line as off-limits). Any prior corrupt entry left in .tmux.conf by
-// older mux versions is removed in the same pass.
+// that line as off-limits). Existing bindings owned by other tools are left
+// untouched.
 func SetupKeybind(key string) error {
-	muxPath, err := os.Executable()
+	executablePath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to find mux executable: %w", err)
+		return fmt.Errorf("failed to find tmux-peeker executable: %w", err)
 	}
 
 	confPath, err := findTmuxConf()
 	if err != nil {
 		return err
 	}
-	bindLine := fmt.Sprintf(`bind %s display-popup -E -w %s -h %s "%s"`, key, popupWidth, popupHeight, muxPath)
+	bindLine := popupBindLine(key, executablePath)
 
 	if isOhMyTmux(confPath) {
 		localPath := findTmuxConfLocal(confPath)
 		if err := writeBindToLocal(localPath, bindLine); err != nil {
 			return err
 		}
-		// Best-effort cleanup of any corrupt line older mux versions may have
-		// appended to the main conf. Ignore failures — we already succeeded
-		// on the file that matters.
-		removed, _ := stripMarkerLines(confPath)
-
 		fmt.Printf("Detected oh-my-tmux. Added to %s:\n  %s\n\n", localPath, bindLine)
-		if removed {
-			fmt.Printf("Removed prior mux entry from %s (was breaking oh-my-tmux's heredoc).\n\n", confPath)
-		}
 		fmt.Printf("Reload tmux config:\n  tmux source-file %s\n\n", localPath)
 		fmt.Printf("Then press: prefix + %s (default prefix: Ctrl+b)\n", key)
 		return nil
@@ -178,7 +186,7 @@ func SetupKeybind(key string) error {
 }
 
 // upsertBindLine writes bindLine into path. If a line tagged with
-// muxKeybindMarker already exists it is replaced in place; otherwise the line
+// keybindMarker already exists it is replaced in place; otherwise the line
 // is appended (createIfMissing controls whether a missing file is allowed).
 func upsertBindLine(path, bindLine string, createIfMissing bool) error {
 	content, err := os.ReadFile(path)
@@ -191,11 +199,11 @@ func upsertBindLine(path, bindLine string, createIfMissing bool) error {
 		}
 	}
 
-	tagged := bindLine + "  " + muxKeybindMarker
+	tagged := bindLine + "  " + keybindMarker
 	lines := strings.Split(string(content), "\n")
 	replaced := false
 	for i, line := range lines {
-		if strings.Contains(line, muxKeybindMarker) {
+		if strings.Contains(line, keybindMarker) {
 			lines[i] = tagged
 			replaced = true
 		}
@@ -226,12 +234,12 @@ func writeBindToLocal(path, bindLine string) error {
 		return fmt.Errorf("failed to read %s: %w", path, err)
 	}
 
-	tagged := bindLine + "  " + muxKeybindMarker
+	tagged := bindLine + "  " + keybindMarker
 	lines := strings.Split(string(content), "\n")
 
 	// Replace existing marker line in place.
 	for i, line := range lines {
-		if strings.Contains(line, muxKeybindMarker) {
+		if strings.Contains(line, keybindMarker) {
 			lines[i] = tagged
 			result := strings.Join(lines, "\n")
 			if !strings.HasSuffix(result, "\n") {
@@ -272,48 +280,6 @@ func writeBindToLocal(path, bindLine string) error {
 		return fmt.Errorf("failed to write %s: %w", path, err)
 	}
 	return nil
-}
-
-// legacyInstallerBindFragment matches the exact bind line older install.sh
-// fallbacks appended without a marker comment. Pre-fix install.sh wrote:
-//
-//	bind-key m display-popup -E -w 80% -h 80% "mux"
-//
-// We strip lines containing this fragment so users corrupted via the installer
-// (not via `mux setup-keybind`) get cleaned up too. Substring match is narrow
-// enough to avoid eating user-authored bindings that wrap mux differently.
-const legacyInstallerBindFragment = `display-popup -E -w 80% -h 80% "mux"`
-
-// stripMarkerLines removes any mux-owned line from path: lines tagged with
-// muxKeybindMarker AND legacy untagged installer binds. Returns whether any
-// line was removed. Missing file returns (false, nil).
-func stripMarkerLines(path string) (bool, error) {
-	content, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, err
-	}
-	lines := strings.Split(string(content), "\n")
-	kept := make([]string, 0, len(lines))
-	removed := false
-	for _, line := range lines {
-		if strings.Contains(line, muxKeybindMarker) ||
-			strings.Contains(line, legacyInstallerBindFragment) {
-			removed = true
-			continue
-		}
-		kept = append(kept, line)
-	}
-	if !removed {
-		return false, nil
-	}
-	result := strings.Join(kept, "\n")
-	if !strings.HasSuffix(result, "\n") && len(result) > 0 {
-		result += "\n"
-	}
-	return true, os.WriteFile(path, []byte(result), 0644)
 }
 
 func getTmuxVersion() (float64, error) {

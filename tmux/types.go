@@ -1,5 +1,5 @@
-// Package tmux provides functions for managing tmux sessions,
-// capturing pane output, and detecting running processes.
+// Package tmux provides functions for managing tmux sessions and
+// capturing pane output.
 package tmux
 
 import "time"
@@ -10,11 +10,11 @@ type Session struct {
 	WindowCount   int      // total window count reported by list-sessions
 	Windows       []Window // nil until enumerated via ListWindows
 	Created       time.Time
-	Activity      time.Time
+	LastAttached  time.Time
 	Attached      bool
+	Current       bool // true when this is the invoking client's session
 	Directory     string
 	ActiveCommand string
-	PanePID       int
 	GitBranch     string // current git branch, empty if not a git repo
 	IsWorktree    bool   // true if Directory is a linked git worktree
 }

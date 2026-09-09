@@ -3,7 +3,7 @@ package ui
 import (
 	"testing"
 
-	"github.com/lunemis/mux/tmux"
+	"github.com/aemonge/tmux-peeker/tmux"
 )
 
 func TestFlatten_NoExpansion(t *testing.T) {

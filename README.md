@@ -1,170 +1,194 @@
-# mux
+# tmux-peeker
 
-**Switch between AI CLI sessions without breaking your flow.**
+> **Peek before you switch.**
 
-Running Claude in one session, Codex in another, and a dev server in a third? Switching between them means detaching, listing sessions, remembering which is which, and reattaching. mux eliminates that friction — see every session's live output at a glance, spot which AI tools are active, and switch in a keystroke.
+**tmux-peeker is a visual workspace switcher for tmux.** Preview sessions, windows, and panes before jumping into them.
 
-[한국어](README.ko.md)
+![tmux-peeker filtering sessions, navigating windows and panes, and opening contextual help](assets/demo.gif)
 
-![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+*Recorded on VHS's Gruvbox Light terminal canvas while preserving tmux-peeker's solarized-gruvbox semantic colors.*
 
-![Demo](assets/demo.gif)
+## Why tmux-peeker?
 
-## The Problem
+A session name is rarely enough when several terminals look alike. tmux-peeker keeps the selected target's live output behind a compact picker, so you can recognize the workspace before switching.
 
-In the age of AI-powered development, a typical workflow looks like:
+- **Live previews** — see the selected session, window, or pane, refreshed every 500 ms
+- **Hierarchy-aware navigation** — drill from sessions into windows and panes
+- **Fast switching** — jump to the exact highlighted target with one key
+- **MRU ordering** — move between recent workspaces like an operating-system switcher
+- **Useful context** — see active commands and Git branch/worktree metadata
+- **Workspace management** — create, rename, kill, filter, and move windows between sessions
+- **Popup workflow** — open a borderless full-screen tmux popup from anywhere
+- **Configurable controls and themes** — keep the workflow comfortable without vendor-specific integrations
 
-- **Session 1**: Claude Code working on your feature
-- **Session 2**: Codex reviewing your test suite
-- **Session 3**: Dev server running your app
-- **Session 4**: Another Claude session refactoring a different module
-
-tmux's built-in `choose-session` shows you a list of names — but which session has Claude waiting for your input? Which one is still running? You end up cycling through sessions blindly.
-
-## How mux solves it
-
-### Live preview — every window and pane
-See the actual terminal output of any session *before* you switch. Press `Tab` to expand a session into its windows, expand again to peek into individual panes — preview each one without attaching.
-
-### AI CLI detection
-`claude`, `codex`, `aider`, `gemini` are automatically detected and highlighted with badges — instantly find the right session.
-
-### Git branch & worktree display
-Each session shows its current git branch. Linked worktrees are visually distinguished so you can tell at a glance which sessions are working on isolated branches.
-
-### Cost & token tracking
-For Claude Code sessions, mux reads session logs to display real-time token usage and estimated cost — no configuration needed.
-
-### Popup overlay
-Press one key to summon mux on top of whatever you're doing — even mid-conversation with an AI CLI. Pick a session and you're there.
-
-![Popup mode](assets/popup.gif)
-
-### Vim-style navigation
-`j`/`k` to browse, `/` to filter, `Enter` to attach. No mouse needed.
-
-## Quick Start
-
-```bash
-# One-line interactive installer (recommended)
-curl -sSL https://raw.githubusercontent.com/lunemis/mux/main/install.sh | bash
-
-# Or install manually
-brew install lunemis/tap/mux   # or: go install github.com/lunemis/mux/cmd/mux@latest
-mux                             # launch the session manager
-```
-
-For the best experience, set up popup mode (opens mux as a floating overlay):
-
-```bash
-mux setup-keybind               # binds prefix + m
-tmux source-file ~/.tmux.conf   # reload config
-```
-
-Now press `Ctrl+b` then `m` anywhere in tmux to open mux.
-
-## Installation
-
-### Interactive installer (recommended)
-
-The installer guides you through binary installation and keybinding setup:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/lunemis/mux/main/install.sh | bash
-```
-
-### Homebrew
-
-```bash
-brew install lunemis/tap/mux
-```
+## Install
 
 ### From source
 
-```bash
-git clone https://github.com/lunemis/mux.git
-cd mux
-make install   # builds and installs to /usr/local/bin
-```
-
-### Go install
+Requires Go 1.24.2+ and tmux.
 
 ```bash
-go install github.com/lunemis/mux/cmd/mux@latest
+git clone https://github.com/aemonge/tmux-peeker.git
+cd tmux-peeker
+make test
+make local-install
 ```
 
-## Usage
+`make local-install` installs `tmux-peeker` into `~/.local/bin`. Ensure that directory is on `PATH`.
 
-### Basic
-
-Run `mux` to open the session manager. Use `j`/`k` to navigate, `Enter` to attach, `q` to quit.
-
-![Screenshot](assets/screenshot.png)
-
-The left panel shows your sessions with AI badges and git branches. The right panel shows a **live preview** of the selected session's terminal output, updated every 500ms.
-
-### Popup mode (recommended)
-
-Open mux as a floating overlay inside tmux — works even while AI CLIs are running in the foreground.
+### Go
 
 ```bash
-# Set up the keybinding (one-time)
-mux setup-keybind          # prefix + m (default)
-mux setup-keybind Space    # or use a different key
-
-# Reload tmux config
-tmux source-file ~/.tmux.conf
+go install github.com/aemonge/tmux-peeker/cmd/tmux-peeker@latest
 ```
 
-You can also open the popup manually with `mux popup`.
-
-> **Note:** Popup mode requires tmux 3.2+
-
-### Statusbar widget
-
-Show AI session icons in your tmux status bar without opening the TUI:
+### Installer
 
 ```bash
-# Add to ~/.tmux.conf
-set -g status-right '#(mux status)'
+curl -fsSL https://raw.githubusercontent.com/aemonge/tmux-peeker/main/install.sh | bash
 ```
 
-This runs `mux status` which outputs a compact summary like `✦ ◈` when AI sessions are active.
+The remote commands become available after the GitHub repository is published under the `tmux-peeker` name. No Homebrew tap is currently maintained.
 
-### Works with skimd
+## Quick start
 
-Pair with [skimd](https://github.com/lunemis/skimd) to review AI-generated markdown docs without leaving tmux.
+```bash
+tmux-peeker
+```
 
-- `prefix+m` → **mux** — switch sessions
-- `prefix+v` → **skimd** — skim documents
+Use `j`/`k` or the arrow keys to move, `Enter` or `Backspace` to attach, and `q` to quit.
 
-![mux + skimd workflow](assets/workflow.gif)
+### Navigate the hierarchy
 
-### Keybindings
-
-| Key | Action |
+| Action | Default keys |
 |---|---|
-| `j` / `k` | Move down / up |
-| `g` / `G` | Jump to first / last |
-| `Tab` / `→` / `l` | Expand session → windows → panes |
-| `Shift+Tab` / `←` / `h` | Collapse one level |
-| `Enter` | Attach (focuses the selected window/pane) |
-| `n` | Create new session |
-| `r` | Rename session |
-| `x` | Delete session (with confirmation) |
-| `/` | Filter sessions by name or path |
-| `Esc` | Clear filter / cancel |
-| `q` | Quit |
+| Move | `j` / `k`, `↓` / `↑` |
+| First / last | `g` / `G` |
+| Drill into session or window | `l`, `→`, `Tab` |
+| Return to parent | `h`, `←`, `Shift+Tab` |
+| Attach selected target | `Enter`, `Backspace` |
+| Create / rename / kill | `n` / `r` / `x` |
+| Move selected window | `m` |
+| Filter / clear filter | `/` / `Esc` |
+| Help | `?` |
+| Quit | `q` |
 
-## Requirements
+Inside tmux, the invoking session stays first and the previously used session is highlighted next. Older sessions follow in MRU order. Background activity does not reorder them. Selecting a window or pane focuses that exact target before attaching.
 
-- tmux (popup mode requires 3.2+)
-- Linux or macOS
+## Popup mode
 
-## Contributing
+Let tmux-peeker install its owned popup binding:
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+```bash
+tmux-peeker setup-keybind       # prefix + m
+tmux-peeker setup-keybind Space # choose another tmux key
+```
+
+Run the reload command it prints. You can also open the popup directly:
+
+```bash
+tmux-peeker popup
+```
+
+A custom global binding must preserve the invoking session:
+
+```tmux
+bind-key -n C-BSpace run-shell 'TMUX_PEEKER_ORIGIN_SESSION=#{q:session_name} "/absolute/path/to/tmux-peeker" popup'
+```
+
+Generated lines carry the marker `# tmux-peeker popup keybinding`. Setup only replaces lines with that marker; bindings owned by `mux` or other tools remain untouched.
+
+## Configuration
+
+The config file is:
+
+- `$XDG_CONFIG_HOME/tmux-peeker/config.json`, or
+- `~/.config/tmux-peeker/config.json` when `XDG_CONFIG_HOME` is unset
+
+Example:
+
+```json
+{
+  "theme": "solarized-gruvbox",
+  "keybindings": {
+    "list": {
+      "attach": ["enter", "space"],
+      "up": ["k"],
+      "down": ["j"],
+      "quit": ["q", "esc"]
+    },
+    "create": {
+      "cancel": ["esc", "ctrl+x"]
+    }
+  }
+}
+```
+
+Overrides are partial: omitted actions retain their defaults, while a configured action replaces its default key list. Use Bubble Tea's case-sensitive names such as `enter`, `backspace`, `space`, `esc`, `tab`, `shift+tab`, `up`, `right`, and `ctrl+c`, or use a literal character. `space` is the visible alias for the Space key; a literal `" "` remains compatible. Conflicting keys are rejected.
+
+Run `?` inside the picker to see active bindings. `any` is reserved for `kill.cancel` and means that any key cancels the confirmation.
+
+### Themes
+
+Built-in themes:
+
+- `default`
+- `solarized-gruvbox`
+
+Select one for a run:
+
+```bash
+tmux-peeker --theme solarized-gruvbox
+tmux-peeker --theme solarized-gruvbox popup
+```
+
+Or set:
+
+```bash
+export TMUX_PEEKER_THEME=solarized-gruvbox
+```
+
+Theme precedence is `--theme`, then `TMUX_PEEKER_THEME`, then the config file, then `default`. Palettes live in [`theme/*.json`](theme/) and are embedded at build time. Set `colors.background` to `"NONE"` to preserve the terminal canvas background. The required `colors.surface` role keeps selector and help cards opaque independently of that canvas setting.
+
+## Migrating from `mux`
+
+tmux-peeker owns a separate binary, config directory, environment namespace, and tmux marker. It never reads, moves, deletes, or rewrites upstream `mux` state.
+
+Copy your selected settings explicitly:
+
+```bash
+mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/tmux-peeker"
+cp "${XDG_CONFIG_HOME:-$HOME/.config}/mux/config.json" \
+  "${XDG_CONFIG_HOME:-$HOME/.config}/tmux-peeker/config.json"
+```
+
+Then replace any `MUX_THEME` usage with `TMUX_PEEKER_THEME` and run `tmux-peeker setup-keybind`. Existing `mux` binding text remains untouched. Because tmux activates only one command for a given key in a key table, choose a different key if both tools must remain usable; otherwise inspect your tmux configuration and remove the upstream binding manually when you no longer want it.
+
+There is intentionally no permanent `mux` executable alias.
+
+## Development
+
+```bash
+make test
+make build
+make local-install
+```
+
+Additional checks used for releases:
+
+```bash
+go vet ./...
+go test -race ./...
+shellcheck install.sh
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for project conventions.
+
+## Independent-fork provenance
+
+tmux-peeker is an independent fork derived from [`lunemis/mux`](https://github.com/lunemis/mux). It preserves the upstream Git history and MIT license while pursuing a vendor-neutral tmux workspace-switching product. It is not affiliated with or endorsed by the upstream project.
+
+See [NOTICE](NOTICE) for attribution details.
 
 ## License
 
