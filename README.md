@@ -4,6 +4,10 @@
 
 **tmux-peeker is a visual workspace switcher for tmux.** Preview sessions, windows, and panes before jumping into them.
 
+![tmux-peeker filtering sessions, navigating windows and panes, and opening contextual help](assets/demo.gif)
+
+*Recorded on VHS's Gruvbox Light terminal canvas while preserving tmux-peeker's solarized-gruvbox semantic colors.*
+
 ## Why tmux-peeker?
 
 A session name is rarely enough when several terminals look alike. tmux-peeker keeps the selected target's live output behind a compact picker, so you can recognize the workspace before switching.

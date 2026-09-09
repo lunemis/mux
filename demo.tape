@@ -14,9 +14,10 @@
 Output assets/demo.gif
 
 Set FontSize 16
-Set Width 1200
-Set Height 700
-Set Theme "Catppuccin Mocha"
+Set Width 1040
+Set Height 600
+Set Padding 12
+Set Theme "Gruvbox Light"
 Set TypingSpeed 35ms
 
 # Build into an isolated workspace before changing HOME. A private tmux wrapper
@@ -55,41 +56,48 @@ Enter
 Type "clear"
 Enter
 Show
-Sleep 500ms
+Sleep 250ms
 
-# Start with the light palette so the opaque selector surface is unmistakable.
+# VHS owns the Gruvbox Light canvas; tmux-peeker keeps its semantic palette.
 Type "tmux-peeker --theme solarized-gruvbox"
-Sleep 300ms
 Enter
-Sleep 2s
+Wait+Screen /tmux sessions \(3\)/
+Sleep 1s
 
 # Narrow the session list to the multi-window fixture.
 Type "/"
-Sleep 300ms
+Sleep 250ms
 Type@70ms "multi"
-Sleep 300ms
+Wait+Screen /> multi/
+Sleep 500ms
 Enter
-Sleep 1s
+Wait+Screen /tmux sessions \(1\).*\/multi/
+Sleep 500ms
 
 # Drill from the session into its windows, select the server, then inspect panes.
 Tab
-Sleep 1200ms
+Wait+Screen /tmux window picker/
+Sleep 900ms
 Down
-Sleep 1s
+Sleep 700ms
 Tab
-Sleep 1200ms
+Wait+Screen /tmux pane picker/
+Sleep 900ms
 Down
-Sleep 1s
+Sleep 700ms
 
 # Show the opaque contextual help card, then return to the selected pane.
 Type "?"
-Sleep 2s
+Wait+Screen /close help/
+Sleep 1500ms
 Escape
-Sleep 1s
+Wait+Screen /panes \(2\)/
+Sleep 700ms
 
 # Leave the picker without attaching so the recording remains deterministic.
 Type "q"
-Sleep 500ms
+Wait+Line /^\$$/
+Sleep 300ms
 
 # Remove only the isolated server, fixtures, binary, HOME, and config.
 Hide
